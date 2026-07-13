@@ -1,0 +1,1056 @@
+![logo](/images/logo.svg#gh-light-mode-only)
+![logo](/images/dark_logo.svg#gh-dark-mode-only)
+
+# Shadow Control
+
+**Eine Home Assistant Integration zur vollständig automatischen Steuerung von Raffstoren und Jalousien.**
+
+![Version](https://img.shields.io/github/v/release/starwarsfan/shadow-control?style=for-the-badge)
+[![Tests][tests-badge]][tests]
+[![Coverage][coverage-badge]][coverage]
+[![hacs_badge][hacsbadge]][hacs]
+[![github][ghsbadge]][ghs]
+[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+[![PayPal][paypalbadge]][paypal]
+[![hainstall][hainstallbadge]][hainstall]
+
+Go to the [English version](/README.md) version of the documentation.
+
+## Inhaltsverzeichnis
+
+* [Einführung](#einführung)
+  * [TL;DR – Kurzform](#tldr--kurzform)
+  * [Beschreibung – Langform](#beschreibung--langform)
+  * [Betriebsarten](#betriebsarten)
+  * [Entitäten-Vorrang](#entitäten-vorrang)
+  * [Adaptiver Helligkeitsschwellwert](#adaptiver-helligkeitsschwellwert)
+  * [Automatische Sperre](#automatische-sperre)
+* [Installation](#installation)
+* [Konfiguration](#konfiguration)
+  * [Initiale Instanzkonfiguration](#initiale-instanzkonfiguration)
+    * [Instanzname](#instanzname)
+    * [Behangtyp](#behangtyp)
+    * [Behang-Entitäten](#behang-entitäten)
+    * [Azimut der Fassade](#azimut-der-fassade)
+    * [Helligkeit](#helligkeit)
+    * [Höhe der Sonne](#höhe-der-sonne)
+    * [Azimut der Sonne](#azimut-der-sonne)
+  * [Optionale Konfiguration](#optionale-konfiguration)
+    * [Fassadenkonfiguration - Teil 1](#fassadenkonfiguration---teil-1)
+      * [Behang-Entitäten](#behang-entitäten-1)
+      * [Azimut der Fassade](#facade-azimuth)
+      * [Beschattungsbeginn](#beschattungsbeginn)
+      * [Beschattungsende](#beschattungsende)
+      * [Minimale Sonnenhöhe](#minimale-sonnenhöhe)
+      * [Maximale Sonnenhöhe](#maximale-sonnenhöhe)
+      * [Debugmodus](#debugmodus)
+      * [Eigene Logdatei schreiben](#eigene-logdatei-schreiben)
+    * [Fassadenkonfiguration - Teil 2](#fassadenkonfiguration---teil-2)
+      * [Neutralhöhe](#neutralhöhe)
+      * [Neutralwinkel](#neutralwinkel)
+      * [Lamellenbreite](#lamellenbreite)
+      * [Lamellenabstand](#lamellenabstand)
+      * [Lamellenwinkeloffset](#lamellenwinkeloffset)
+      * [Minimaler Lamellenwinkel](#minimaler-lamellenwinkel)
+      * [Höhenschrittweite](#höhenschrittweite)
+      * [Winkelschrittweite](#winkelschrittweite)
+      * [Lichtstreifenbreite](#lichtstreifenbreite)
+      * [Gesamthöhe](#gesamthöhe)
+      * [Maximale Verfahrdauer](#maximale-verfahrdauer)
+      * [Toleranz Höhenänderung](#toleranz-höhenänderung)
+      * [Toleranz Lamellenwinkeländerung](#toleranz-lamellenwinkeländerung)
+    * [Dynamische Eingänge](#dynamische-eingänge)
+      * [Helligkeit](#brightness)
+      * [Helligkeit Dawn](#brightness-Dawn)
+      * [Höhe der Sonne](#sun-elevation)
+      * [Azimut der Sonne](#sun-azimuth)
+      * [Integration sperren](#integration-sperren)
+      * [Integration sperren mit Zwangsposition](#integration-sperren-mit-zwangsposition)
+      * [Zwangsposition Höhe](#zwangsposition-höhe)
+      * [Zwangsposition Lamellenwinkel](#zwangsposition-lamellenwinkel)
+      * [Instanz entsperren](#instanz-entsperren)
+      * [Höhenveränderung einschränken](#höhenveränderung-einschränken)
+      * [Winkelveränderung einschränken](#winkelveränderung-einschränken)
+      * [Zwangspositionierung auslösen](#zwangspositionierung-auslösen)
+    * [Beschattungseinstellungen](#beschattungseinstellungen)
+      * [B01 Steuerung aktiv](#b01-steuerung-aktiv)
+      * [B02 Winter Helligkeitsschwellwert](#b02-winter-helligkeitsschwellwert)
+      * [B03 Sommer Helligkeitsschwellwert](#b03-sommer-helligkeitsschwellwert)
+      * [B04 Minimaler Helligkeitsschwellwert](#b04-minimaler-helligkeitsschwellwert)
+      * [B05 Schliessen nach x Sekunden](#b05-schliessen-nach-x-sekunden)
+      * [B06 Maximale Behanghöhe](#b06-maximale-behanghöhe)
+      * [B07 Maximaler Lamellenwinkel](#b07-maximaler-lamellenwinkel)
+      * [B08 Durchsicht nach x Sekunden](#b08-durchsicht-nach-x-sekunden)
+      * [B09 Durchsichtwinkel](#b09-durchsichtwinkel)
+      * [B10 Öffnen nach x Sekunden](#b10-öffnen-nach-x-sekunden)
+      * [B11 Höhe nach Beschattung](#b11-höhe-nach-beschattung)
+      * [B12 Winkel nach Beschattung](#b12-winkel-nach-beschattung)
+    * [Dämmerungseinstellungen](#dämmerungseinstellungen)
+      * [D01 Steuerung aktiv](#d01-steuerung-aktiv)
+      * [D02 Dämmerungsschwellwert](#d02-dämmerungsschwellwert)
+      * [D03 Schliessen nach x Sekunden](#d03-schliessen-nach-x-sekunden)
+      * [D04 Maximale Behanghöhe](#d04-maximale-behanghöhe)
+      * [D05 Maximaler Lamellenwinkel](#d05-maximaler-lamellenwinkel)
+      * [D06 Durchsicht nach x Sekunden](#d06-durchsicht-nach-x-sekunden)
+      * [D07 Durchsichtwinkel](#d07-durchsichtwinkel)
+      * [D08 Öffnen nach x Sekunden](#d08-öffnen-nach-x-sekunden)
+      * [D09 Höhe nach Dämmerung](#d09-höhe-nach-dämmerung)
+      * [D10 Winkel nach Dämmerung](#d10-winkel-nach-dämmerung)
+      * [D11 Frühestens öffnen um (Uhrzeit)](#d11-frühestens-öffnen-um-uhrzeit)
+      * [D12 Spätestens schließen um (Uhrzeit)](#d12-spätestens-schließen-um-uhrzeit)
+  * [Konfiguration via yaml](#konfiguration-via-yaml)
+    * [yaml Beispielkonfiguration](#yaml-beispielkonfiguration)
+* [Status, Rückgabewerte und direkte Optionen](#status-rückgabewerte-und-direkte-optionen)
+  * [Status-Werte](#status-werte)
+    * [Zielhöhe](#zielhöhe)
+    * [Zielwinkel](#zielwinkel)
+    * [Zielwinkel in Grad](#zielwinkel-in-grad)
+    * [Kalkulatorische Zielhöhe](#kalkulatorische-zielhöhe)
+    * [Kalkulatorischer Zielwinkel](#kalkulatorischer-zielwinkel)
+    * [Aktueller Status](#aktueller-status)
+    * [Sperr-Status](#sperr-status)
+    * [Nächste Behangmodifikation](#nächste-behangmodifikation)
+    * [In der Sonne](#in-der-sonne)
+    * [Aktiver Helligkeitsschwellwert](#aktiver-helligkeitsschwellwert)
+  * [Direkte Optionen](#direkte-optionen)
+* [Konfiguration-Export](#konfiguration-export)
+  * [Vorarbeiten](#vorarbeiten)
+  * [Anwendung des Service](#anwendung-des-service)
+  * [UI-Modus](#ui-modus)
+  * [YAML-Modus](#yaml-modus)
+
+# Einführung
+
+**Shadow Control** ist die Portierung des Edomi-LBS "Beschattungssteuerung-NG" für Home Assistant. Da Edomi [zum Tode verurteilt wurde](https://knx-user-forum.de/forum/projektforen/edomi/1956975-quo-vadis-edomi) und ich mit den bestehenden Beschattungslösungen nicht wirklich zufrieden war, habe ich mich dazu entschlossen, meinen LBS (Edomi-Bezeichnung für **L**ogic**B**au**S**tein) in eine Home Assistant Integration zu portieren. Das war ein sehr interessanter "Tauchgang" in die Hintergründe von Homa Assistant, der Idee dahinter und wie das Ganze im Detail funktioniert. Viel Spass mit der Integration.
+
+
+
+## TL;DR – Kurzform
+
+* Raffstoren- und Jalousie-Steuerung basierend auf Helligkeitsschwellwerten und verschiedenen Timern
+* Adaptiver Helligkeitsschwellwert
+* Höhe und Lamellenwinkel für Beschattung und Dämmerung separat konfigurierbar
+  * Beschattungs- resp. Dämmerungsposition nach Helligkeitsschwellwert und Zeit X
+  * Durchsicht-Position nach Helligkeitsschwellwert und Zeit Y
+  * Offen-Position nach Zeit Z
+* Besonnungsbereich einschränkbar
+* Positionierung sperrbar
+* Bewegungsrichtung des Behangs einschränkbar
+* Unbeschatteter Bereich konfigurierbar
+* Schrittweite konfigurierbar
+* Separater Helligkeitseingang für Dämmerungssteuerung möglich
+* Konfiguration via ConfigFlow und YAML möglich
+
+## Beschreibung – Langform
+
+Basierend auf verschiedenen Eingangswerten wird die Integration die Positionierung des Behangs übernehmen. Damit das funktioniert, muss die jeweilige Instanz mit dem Azimut der Fassade, dem Sonnenstand sowie der dortigen Helligkeit konfiguriert werden. Zusätzlich sind viele weitere Details konfigurierbar, um den Beschattungsvorgang resp. den entsprechenden Bereich unter direkter Sonneneinstrahlung zu definieren und somit direktes Sonnenlicht im Raum zu verhindern oder einzuschränken.
+
+Die berechnete Behanghöhe sowie der Lamellenwinkel hängen von der momentanen Helligkeit, den konfigurierten Schwellwerten, der Abmessung der Lamellen, Timern und weiteren Einstellungen ab. Die verschiedenen Timer werden je nach momentanem Zustand der Integration gestartet.
+
+
+
+## Betriebsarten
+
+Grundsätzlich gibt es zwei Betriebsarten: _Beschattung_ und _Dämmerung_, welche unabhängig voneinander eingerichtet werden.
+
+Die Berechnung der Position wird durch die Aktualisierung der folgenden Eingänge ausgelöst:
+
+* [Helligkeit](#helligkeit)
+* [Helligkeit (Dämmerung)](#helligkeit-dämmerung)
+* [Höhe der Sonne](#höhe-der-sonne)
+* [Azimut der Sonne](#azimut-der-sonne)
+* [Integration sperren](#integration-sperren)
+* [Integration sperren mit Zwangsposition](#integration-sperren-mit-zwangsposition)
+* [Beschattungssteuerung ein/aus](#b01-steuerung-aktiv)
+* [B06 Maximale Behanghöhe](#b06-maximale-behanghöhe)
+* [B07 Maximaler Lamellenwinkel](#b07-maximaler-lamellenwinkel)
+* [Dämmerungssteuerung ein/aus](#d01-steuerung-aktiv)
+* [D04 Maximale Behanghöhe](#d04-maximale-behanghöhe)
+* [D05 Maximaler Lamellenwinkel](#d05-maximaler-lamellenwinkel)
+* [Zwangspositionierung auslösen](#zwangspositionierung-auslösen)
+
+Der konfigurierte Behang wird nur dann neu positioniert, wenn sich die berechneten Werte seit dem letzten Lauf der Integration geändert haben. Damit wird die unnötige Neupositionierung der Raffstorenlamellen verhindert.
+
+
+
+## Entitäten-Vorrang
+Achtung: Bei allen Optionen hat die Entity-Verknüpfung Vorrang! Das bedeutet, dass sobald eine Entität konfiguriert wird, wird deren Wert verwendet. Ausserdem werden die internen Entitäten aus dem System entfernt. Um die internen Entitäten wiederzuverwenden, muss die Entity-Verknüpfung gelöscht werden.
+
+
+
+## Adaptiver Helligkeitsschwellwert
+
+_Hinweis: Die Funktionalität des adaptiven Helligkeitsschwellwertes basiert auf dem Edomi-LBS 19001445 von Hardy Köpf (harry7922). Vielen Dank!_
+
+Zwischen dem Sonnenaufgang und Sonnenuntergang wird eine Helligkeitsschwelle über eine Sinus-Kurve mit einem Tageshöchstwert berechnet. Der Tageshöchstwert wird dabei über eine lineare Formel ermittelt. Dies dient dazu, die Varianz der Helligkeit zwischen Winter und Sommer auszugleichen.
+
+![Schemaskizze adaptive Helligkeitssteuerung](/images/adaptive_brightness_diagram.svg)
+
+Zur Sommersonnenwende steht die Sonne am höchsten. Das ist auf der Nordhalbkugel jährlich am 21.06. bzw. auf der Südhalbkugel am 21.12. der Fall. **Shadow Control** ermittelt aus den Geo-Koordinaten der Home Assistant-Instanz, ob sich diese auf der Nord- oder der Südhalbkugel befindet. Ausgehend von der verwendeten Sommersonnenwende wird über eine lineare Formel für den heutigen Tag ein maximaler Helligkeits-Schwellwert zwischen dem Winter- und dem Sommerschwellwert ermittelt. Im Hochsommer ist erst ab einem höheren LUX-Wert der Himmel klar und Sonnenschein, im Winter ist das bei bereits deutlich weniger LUX der Fall. Die Winter- und Sommerschwellwert definieren dabei die Varianz zwischen Winter und Sommer. Somit wird benutzerspezifisch definiert, welche maximale Helligkeit im Hochsommer und welche maximale Helligkeit im Winter benötigt wird, um die Beschattung auszulösen. 
+
+Im nächsten Schritt wird zwischen Sonnenaufgang und Sonnenuntergang eine Sinus-Kurve berechnet, welche am ermittelten Tageshöchstwert ihren höchsten Punkt erreicht. Als niedrigster Punkt der Sinuskurve und damit als niedrigster Schwellwert der Beschattung, wird der konfigurierte minimale Helligkeitsschwellwert verwendet. Dieser Wert kann nicht kleiner als der [D02 Dämmerungsschwellwert](#d02-dämmerungsschwellwert) sein.
+
+Die Konfigurationsoptionen dazu sind [B02 Winter Helligkeitsschwellwert](#b02-winter-helligkeitsschwellwert), [B03 Sommer Helligkeitsschwellwert](#b03-sommer-helligkeitsschwellwert) und [B04 Schwellwertpuffer Sommer/Winter](#b04-schwellwertpuffer-sommerwinter).
+
+
+
+## Automatische Sperre
+
+Wird der Behang manuell verfahren, sperrt sich die jeweilige **Shadow Control** Instanz automatisch. Dies verhindert, dass ein manuelles Positionieren durch die Integration überschrieben wird. Damit das sauber funktioniert ist es wichtig, dass die Verfahrzeit der Behang-Entitäten korrekt konfiguriert ist. Siehe dazu den Abschnitt [Maximale Verfahrdauer](#maximale-verfahrdauer).
+
+Der Sperrstatus wird im Sensor `sensor.<instanzname>_lock_status` angezeigt, Details siehe [Sensor Sperr-Status](#sperr-status).
+
+Der Status der automatischen Sperre wird nach einem Home Assistant Neustart wiederhergestellt.
+
+
+
+# Installation
+
+**Shadow Control** ist eine Default-Integration in HACS. Zur Installation genügt es also, in HACS danach zu suchen, die Integration hinzuzufügen und Home-Assistant neu zu starten. Im Anschluss kann die Integration unter _Einstellungen > Geräte und Dienste_ hinzugefügt werden.
+
+In den folgenden Abschnitten gilt Folgendes:
+
+* Das Wort "Fassade" ist gleichbedeutend mit "Fenster" oder "Tür", da es hier lediglich den Bezug zum Azimut eines Objektes in Blickrichtung von innen nach aussen darstellt.
+* Das Wort "Behang" bezieht sich auf Raffstoren. In der Home Assistant Terminologie ist das ein "cover", was aus Sicht dieser Integration das Gleiche ist.
+* Die gesamte interne Logik wurde ursprünglich für die Interaktion mit KNX-Systemen entwickelt. Der Hauptunterschied ist daher die Handhabung von Prozentwerten. **Shadow Control** wird mit Home Assistant korrekt interagieren aber die Konfiguration sowie die Logausgaben verwenden 0 % als geöffnet und 100 % als geschlossen.
+* Fast alle Einstellungen
+  * stellen eigene Steuerelemente bereit, welche auf der Instanz-Ansicht direkt modifiziert werden können. Damit können die Werte der Optionen einfach verändert und angepasst werden.
+  * können bei Bedarf mit eigenen Entitäten verknüpft werden. Sobald davon Gebrauch gemacht wird, wird kein Steuerelement sondern ein Sensor erstellt, welcher den aktuellen Wert der verknüpften Entität zeigt. Damit können die Werte der Optionen dynamisch angepasst werden, bspw. durch vorgelagerte Automationen.
+
+
+
+# Konfiguration
+
+Die Konfiguration ist unterteilt in die minimalistische Initialkonfiguration sowie in eine separate Detailkonfiguration. Die Initialkonfiguration führt bereits zu einer vollständig funktionierenden Behangautomatisierung, welche über die Detailkonfiguration bei Bedarf jederzeit angepasst werden kann.
+
+
+
+## Initiale Instanzkonfiguration
+
+Die initiale Instanzkonfiguration ist sehr minimalistisch und benötigt nur die folgenden Konfigurationswerte. Alle anderen Einstellungen werden mit Standardwerten vorbelegt, welche im Nachhinein an die persönlichen Wünsche angepasst werden können. Siehe dazu den Abschnitt [Optionale Konfiguration](#optionale-konfiguration).
+
+### Instanzname
+(yaml: `name`)
+
+Ein beschreibender und eindeutiger Name für diese **Shadow Control** Instanz. Eine bereinigte Version dieses Namens wird zur Kennzeichnung der Log-Einträge in der Home Assistant Logdatei sowie als Präfix für die von der Integration erstellten Status- und Options-Entitäten verwendet.
+
+Beispiel: 
+1. Die Instanz wird "Essbereich Tür" genannt
+2. Der bereinigte Name ist daraufhin "essbereich_tr"
+3. Log-Einträge beginnen mit `[essbereich_tr]`
+4. Status-Entitäten heissen bspw. `sensor.essbereich_tr_target_height`
+
+#### Behangtyp
+(yaml: `facade_shutter_type_static`)
+
+Der verwendete Behangtyp. Standardeinstellung ist der 90°-Behangtyp (yaml: `mode1`). Bei diesem Typ sind die Lamellen bei 0% waagerecht, also offen und bei 100% (i.d.R. nach aussen) vollständig geschlossen.
+
+Weitere unterstützte Typen:
+
+* Der zweite mögliche Behangtyp hat einen Schwenkbereich von ca. 180° (yaml: `mode2`), also bei 0% (i.d.R. nach aussen) geschlossen, bei 50% waagerecht offen und bei 100% (i.d.R. nach innen) wiederum geschlossen.
+* Der dritte Behangtyp sind Jalousien bzw. Rollos (yaml: `mode3`). Bei diesem Typ werden sämtliche Winkeleinstellungen ausgeblendet.
+
+Der Behangtyp kann im Nachhinein nicht geändert werden. Um ihn zu ändern, muss die jeweilige **Shutter Control** Instanz gelöscht und neu angelegt werden.
+
+### Behang-Entitäten
+(yaml: `target_cover_entity`)
+
+Hier werden die zu steuernden Behang-Entitäten verbunden. Es können beliebig viele davon gleichzeitig gesteuert werden. Allerdings empfiehlt es sich, nur die Storen zu steuern, welche sich auf der gleichen Fassade befinden, also das gleiche Azimut haben. Für die weiteren internen Berechnungen wird der erste konfigurierte Behang herangezogen. Alle anderen Storen werden identisch positioniert.
+
+Im yaml ist die Listen-Syntax zu verwenden:
+```yaml
+    target_cover_entity:
+      - cover.fenster_buro_1
+      - cover.fenster_buro_2
+```
+
+### Azimut der Fassade
+(yaml: `facade_azimuth_static`)
+
+Azimut der Fassade in Grad, also die Blickrichtung von innen nach aussen. Eine perfekt nach Norden ausgerichtete Fassade hat ein Azimut von 0°, eine nach Süden ausgerichtete Fassade demzufolge 180°. Der Sonnenbereich dieser Fassade ist der Bereich, in dem die Beschattungssteuerung via **Shadow Control** erfolgen soll. Das ist maximal ein Bereich von 180°, also [Azimut der Fassade](#azimut-der-fassade) + [Beschattungsbeginn](#beschattungsbeginn) bis [Azimut der Fassade](#azimut-der-fassade) + [Beschattungsende](#beschattungsende).
+
+rdeckard hat damals für den Edomi-Baustein eine Zeichnung beigesteuert, welche unverändert auch hier gültig ist:
+
+![Erklärung zum Azimut](/images/azimut.png)
+
+### Helligkeit
+(yaml: `brightness_entity`)
+
+Aktuelle Helligkeit auf der Fassade. Im Regelfall kommt dieser Wert von einer Wetterstation und sollte der tatsächlichen Helligkeit auf dieser Fassade möglichst nah kommen.
+
+### Höhe der Sonne
+(yaml: `sun_elevation_entity`)
+
+Hier wird die aktuelle Höhe (Elevation) der Sonne konfiguriert. Dieser Wert kommt ebenfalls von einer Wetterstation oder direkt von der Home Assistant Sonne-Entität. Gültig ist dabei der Bereich von 0° (horizontal) bis 90° (vertikal).
+
+### Azimut der Sonne
+(yaml: `sun_azimuth_entity`)
+
+Hier wird der aktuelle Winkel (Azimut) der Sonne konfiguriert. Dieser Wert kommt ebenfalls von einer Wetterstation oder direkt von der Home Assistant Sonne-Entität. Gültig ist dabei der Bereich von 0° bis 359°.
+
+sunrise_entity
+sunset_entity
+
+
+
+## Optionale Konfiguration
+
+Die folgenden Optionen sind über den separaten ConfigFlow verfügbar, welcher mit einem Klick auf das Zahnrad-Symbol der jeweiligen Instanz unter Einstellungen > Geräte und Dienste > **Shadow Control** geöffnet wird..
+
+### Fassadenkonfiguration - Teil 1
+
+#### Behang-Entitäten
+
+Siehe Beschreibung unter [Behang-Entitäten](#behang-entitäten).
+
+#### Azimut der Fassade
+
+Siehe Beschreibung unter [Azimut der Fassade](#azimut-der-fassade).
+
+#### Beschattungsbeginn
+(yaml: `facade_offset_sun_in_static`)
+
+Negativoffset zum [Azimut der Fassade](#azimut-der-fassade), ab welchem die Beschattung erfolgen soll. Wenn das Azimut der Sonne kleiner ist als [Azimut der Fassade](#azimut-der-fassade) + [Beschattungsbeginn](#beschattungsbeginn), wird keine Beschattungsberechnung ausgelöst. Gültiger Wertebereich: -90–0, Standardwert: -90
+
+#### Beschattungsende
+(yaml: `facade_offset_sun_out_static`)
+
+Positivoffset zum [Azimut der Fassade](#azimut-der-fassade), bis zu welchem die Beschattung erfolgen soll. Wenn das Azimut der Sonne grösser ist als [Azimut der Fassade](#azimut-der-fassade) + [Beschattungsende](#beschattungsende), wird keine Beschattungsberechnung ausgelöst. Gültiger Wertebereich: 0-90, Standardwert: 90
+
+#### Minimale Sonnenhöhe
+(yaml: `facade_elevation_sun_min_static`)
+
+Minimale Höhe der Sonne in Grad. Ist die effektive Höhe kleiner als dieser Wert, wird keine Beschattungsberechnung ausgelöst. Ein Anwendungsfall dafür ist bspw. wenn sich vor der Fassade ein anderes Gebäude befindet, welches Schatten auf die Fassade wirft, während die Wetterstation auf dem Dach noch voll in der Sonne ist. Wertebereich: 0-90, Standardwert: 0
+
+Hinweis bzgl. "effektiver Höhe": Um den korrekten Lamellenwinkel zu berechnen, muss die Höhe der Sonne im rechten Winkel zur Fassade errechnet werden. Das ist die sog. "effektive Höhe", welche so auch im Log zu finden ist. Wenn die Beschattungssteuerung insbesondere im Grenzbereich der beiden Beginn- und Ende-Offsets nicht wie erwartet arbeitet, muss dieser Wert genauer betrachtet werden.
+
+#### Maximale Sonnenhöhe
+(yaml: `facade_elevation_sun_max_static`)
+
+Maximale Höhe der Sonne in Grad. Ist die effektive Höhe grösser als dieser Wert, wird keine Beschattungsberechnung ausgelöst. Ein Anwendungsfall dafür ist bspw. wenn sich über der Fassade resp. dem Fenster ein Balkon befindet, welcher Schatten auf die Fassade wirft, während die Wetterstation auf dem Dach noch voll in der Sonne ist. Wertebereich: 0-90, Standardwert: 90
+
+#### Debugmodus
+(yaml: `debug_enabled`)
+
+Mit diesem Schalter kann der Debugmodus aktiviert werden. Damit werden erheblich mehr Informationen zum Verhalten und der Berechnung für diese Fassade ins Log geschrieben.
+
+#### Eigene Logdatei schreiben
+(yaml: `own_logfile_enabled`)
+
+Mit diesem Schalter schreibt Shadow Control alle Log-Ausgaben dieser Instanz zusätzlich in eine eigene Logdatei im Home Assistant Konfigurationsverzeichnis. Die Datei wird nach dem Schema `shadow_control_<bereinigter-instanzname>.log` benannt und automatisch rotiert (max. 5 MB pro Datei, 3 Backups). Dies ist besonders nützlich, wenn Logs einer bestimmten Instanz über einen längeren Zeitraum gesammelt werden sollen, ohne das Haupt-Log von Home Assistant durchsuchen zu müssen.
+
+Beispielpfad: `<config_dir>/shadow_control_esszimmer_tuer.log`
+
+
+### Fassadenkonfiguration - Teil 2
+
+#### Neutralhöhe
+(yaml: `facade_neutral_pos_height_manual`)
+
+Behanghöhe in % in Neutralposition. Die Integration wird in die Neutralposition fahren, wenn mindestens eine der folgenden Bedingungen erfüllt ist: 
+
+* Die Sonne befindet sich im Beschattungsbereich und die Beschattungsregelung wird deaktiviert
+* Die Dämmerungsregelung wird deaktiviert
+* Die Sonne verlässt den Beschattungsbereich
+
+Standardwert: 0
+
+#### Neutralwinkel
+(yaml: `facade_neutral_pos_angle_manual`)
+
+Lamellenwinkel in % in Neutralposition. Alles andere identisch zu [Neutralhöhe](#neutralhöhe). Standardwert: 0
+
+#### Lamellenbreite
+(yaml: `facade_slat_width_static`)
+
+Die Breite der Lamellen in mm. Breite und Abstand werden benötigt, um den Lamellenwinkel zu berechnen, der benötigt wird, die Lamellen gerade so schräg zu stellen, dass kein direktes Sonnenlicht in den Raum fällt. Die Lamellenbreite muss zwingend grösser als der Lamellenabstand sein, anderenfalls ist es nicht möglich, eine korrekte Beschattungsposition anzufahren. Standardwert: 95
+
+#### Lamellenabstand
+(yaml: `facade_slat_distance_static`)
+
+Der Abstand der Lamellen in mm. Alles andere siehe [Lamellenbreite](#lamellenbreite). Standardwert: 67
+
+#### Lamellenwinkeloffset
+(yaml: `facade_slat_angle_offset_static`)
+
+Lamellenwinkeloffset in %. Dieser Wert wird zum berechneten Lamellenwinkel addiert. Er kann somit verwendet werden, um allfällige Ungenauigkeiten im Grenzbereich der Beschattung zu korrigieren. Das ist bspw. der Fall, wenn der Behang in Beschattungsposition ist aber dennoch ein schmaler Lichtstrahl hindurchfällt. Standardwert: 0
+
+#### Minimaler Lamellenwinkel
+(yaml: `facade_slat_min_angle_static`)
+
+Minimaler Lamellenwinkel in %. Die Lamellen werden im Bereich von diesem Wert bis 100% positioniert. Damit kann diese Option dazu verwendet werden, den Öffnungsbereich zu begrenzen. Standardwert: 0
+
+#### Höhenschrittweite
+(yaml: `facade_shutter_stepping_height_static`)
+
+Schrittweite der Höhenpositionierung. Die meissten Rollläden sind nicht in der Lage, sehr kleine Positionierungsschritte anzufahren. Um dem zu begegnen, kann hier die Schrittweite eingestellt werden, in welcher der Behang positioniert werden soll. Dabei wird berücksichtigt, ob die Sonne steigt oder fällt. Standardwert: 5
+
+#### Winkelschrittweite
+(yaml: `facade_shutter_stepping_angle_static`)
+
+Schrittweite der Lamellenwinkelpositionierung. Details siehe [Höhenschrittweite](#höhenschrittweite). Standardwert: 5
+
+#### Lichtstreifenbreite
+(yaml: `facade_light_strip_width_static`)
+
+Breite eines nicht zu beschattenden Lichtstreifens am Boden. Mit dieser Einstellung wird festgelegt, wie tief oder weit die Sonne in den Raum hinein scheinen soll. Dementsprechend wird der Behang in der Höhe nicht 100% geschlossen, sondern auf die Höhe gefahren, welche in den hier definierten Lichtstreifen resultiert. Standardwert: 0
+
+#### Gesamthöhe
+(yaml: `facade_shutter_height_static`)
+
+Um den Lichtstreifen aus [Lichtstreifenbreite](#lichtstreifenbreite) zu berechnen, wird die Gesamthöhe des Behangs resp. des Fensters benötigt. Damit muss die gleiche Einheit verwendet werden, also bspw. beide Werte in mm. Standardwert: 1000
+
+#### Maximale Verfahrdauer
+(yaml: `facade_max_movement_duration_static`)
+
+Gibt die Dauer der Bewegung von vollständig geschlossen (unten) bis vollständig offen (oben) in Sekunden an. Dieser Wert wird benötigt, um die automatische Instanzsperre korrekt durchzuführen, wenn der Behang manuell bewegt wird.
+
+Bei der Konfiguration der verwendeten KNX-Cover-Instanzen ist zu beachten, dass die `travelling_time_up`- und `travelling_time_down`-Werte korrekt angegeben werden müssen! Diese Werte werden von Home Assistant zum Animieren der Slider auf dem UI verwendet und somit wird beim Bewegen des Behangs über die konfigurierte Zeit hinweg stetig hoch bzw. runter gezählt. Das kann unter `Entwicklerwerkzeuge > Zustände` auf der jeweiligen Cover-Entität beobachtet werden. Damit ist das aber auch der Positionswert, welcher als Rückmeldung bei der **Shadow Control** Instanz ankommt. Diese Werte dürfen auf keinen Fall grösser als `facade_max_movement_duration_static` sein! Es empfiehlt sich, die beiden Travelling-Time-Werte auf die gemessene Verfahrzeit des Behangs und `facade_max_movement_duration_static` jeweils zwei bis drei Sekunden länger zu konfigurieren.
+
+Beispiel aus der **Shadow Control** Instanz-Konfiguration:
+```yaml
+  facade_max_movement_duration_static: 35
+```
+
+Beispiel der KNX-Cover-Konfiguration:
+```yaml
+- name: "Fenster Büro West"
+  move_long_address: "1/0/17"
+  move_short_address: "1/0/17"
+  stop_address: "1/1/17"
+  position_address: "1/2/17"
+  position_state_address: "1/3/17"
+  travelling_time_down: 32
+  travelling_time_up: 32
+  angle_address: "1/2/117"
+  angle_state_address: "1/3/117"
+```
+
+#### Toleranz Höhenänderung
+(yaml: `facade_modification_tolerance_height_static`)
+
+Toleranzbereich für externe Höhenmodifikation. Weicht die kalkulierte Höhe von der tatsächlichen Höhe +/- der hier angegebenem Toleranz ab, sperrt sich die Integration nicht selbst. Standardwert: 8
+
+#### Toleranz Lamellenwinkeländerung
+(yaml: `facade_modification_tolerance_angle_static`)
+
+Toleranzbereich für externe Lamellenwinkelmodifikation, alles Weitere siehe [Toleranz Höhenänderung](#toleranz-höhenänderung). Standardwert: 5
+
+
+
+
+
+### Dynamische Eingänge
+
+Dieser Abschnitt konfiguriert die dynamischen Eingänge. Damit werden die Werte eingerichtet, welche sich im täglichen Betrieb ändern können wie bspw. der Sonnenstand oder andere Verhaltenseinstellungen der Integration.
+
+#### Helligkeit
+
+Siehe Beschreibung unter [Helligkeit](#brightness).
+
+#### Helligkeit (Dämmerung)
+(yaml: `brightness_dawn_entity`)
+
+Hier kann eine separate Helligkeit für die Dämmerungssteuerung eingestellt werden. Das ist insbesondere dann sinnvoll, wenn für die einzelnen **Shadow Control** Instanzen resp. Fassaden unterschiedliche Helligkeitssensoren verwendet werden, der Behang aber im gesamten Gebäude zur Dämmerung gleichzeitig geschlossen werden soll. 
+
+In diesem Fall sollte über eine separate Automation bspw. der Mittelwert aus allen Helligkeiten berechnet und hier verknüpft werden. Damit werden alle Raffstoren gleichzeitig in die Dämmerungsposition gefahren.
+
+Wenn nur eine Helligkeit für das gesamte Gebäude vorhanden ist, kann dieser Eingang leer bleiben.
+
+#### Höhe der Sonne
+
+Siehe Beschreibung unter [Höhe der Sonne](#sun-elevation).
+
+#### Azimut der Sonne
+
+Siehe Beschreibung unter [Azimut der Sonne](#sun-azimuth).
+
+#### Integration sperren
+(yaml: `lock_integration_manual: true|false` u/o `lock_integration_entity: <entity>`)
+
+Mit diesem Eingang kann die Instanz gesperrt werden. Wird der Eingang aktiviert, also auf 'on' gesetzt, arbeitet die Instanz intern normal weiter, aktualisiert aber den verbundenen Behang nicht. Damit wird erreicht, dass beim Entsperren direkt die nun gültige Position angefahren werden kann.
+
+Wird der Eingang auf 'off' gesetzt, arbeitet die Instanz normal weiter, solange nicht [Integration sperren mit Zwangsposition](#integration-sperren-mit-zwangsposition) aktiv ist.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Integration sperren mit Zwangsposition
+(yaml: `lock_integration_with_position_manual: true|false` u/o `lock_integration_with_position_entity: <entity>`)
+
+Mit diesem Eingang kann die Instanz gesperrt und eine Zwangsposition angefahren werden. Wird der Eingang aktiviert, also auf 'on' gesetzt, arbeitet die Instanz intern normal weiter, fährt aber den Behang auf die via [Zwangsposition Höhe](#zwangsposition-höhe)/[Zwangsposition Lamellenwinkel](#zwangsposition-lamellenwinkel) konfigurierte Position. Damit wird erreicht, dass beim Entsperren direkt die nun gültige Position angefahren werden kann.
+
+Wird der Eingang auf 'off' gesetzt, arbeitet die Instanz normal weiter, solange nicht [Integration sperren](#integration-sperren) aktiv ist.
+
+Dieser Eingang hat Vorrang vor [Integration sperren](#integration-sperren). Werden beide Sperren auf 'on' gesetzt, wird die Zwangsposition angefahren.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Zwangsposition Höhe
+(yaml: `lock_height_manual: <Wert>` u/o `lock_height_entity: <entity>`)
+
+Anzufahrende Höhe in %, wenn die Integration via [Integration sperren mit Zwangsposition](#integration-sperren-mit-zwangsposition) gesperrt wird.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Zwangsposition Lamellenwinkel
+(yaml: `lock_angle_manual: <Wert>` u/o `lock_angle_entity: <entity>`)
+
+Anzufahrender Lamellenwinkel in %, wenn die Integration via [Integration sperren mit Zwangsposition](#integration-sperren-mit-zwangsposition) gesperrt wird.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Instanz entsperren
+(yaml: `unlock_integration_manual: true|false` u/o `unlock_integration_entity: <entity>`)
+
+Mit diesem Eingang kann die Instanz entsperrt werden. Wird der Eingang aktiviert, also auf 'on' gesetzt, werden sämtliche Sperrzustände deaktiviert.
+
+#### Höhenveränderung einschränken
+(yaml: `movement_restriction_height_manual: <siehe-unten>` u/o `movement_restriction_height_entity: <entity>`)
+
+Mit diesem Setting kann die Bewegungsrichtung der Höhenpositionierung wie folgt eingeschränkt werden
+
+* "Keine Einschränkung" (Standardwert):
+  Keine Einschränkung der Höhenpositionierung. Die Integration wird den Behang öffnen oder schliessen.
+* "Nur schließen":
+  Im Vergleich zur letzten (vorherigen) Positionierung werden nur weiter schließende Positionen angefahren.
+* "Nur öffnen":
+  Im Vergleich zur letzten (vorherigen) Positionierung werden nur weiter öffnende Positionen angefahren.
+
+Das kann dafür verwendet werden, dass der Behang nach der Beschattung nicht zunächst geöffnet und kurze Zeit später durch schnell einsetzende Dämmerung wieder geschlossen wird. Durch eine separate, bspw. tageszeitabhängige Automation, kann dieser Eingang entsprechend modifiziert werden.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Winkelveränderung einschränken
+(yaml: `movement_restriction_angle_manual: <siehe-unten>` u/o `movement_restriction_angle_entity: <entity>`)
+
+Siehe [Höhenveränderung einschränken](#höhenveränderung-einschränken), hier nur für den Lamellenwinkel.
+
+Achtung, siehe Hinweis unter [Entitäten-Vorrang](#entitäten-vorrang).
+
+#### Zwangspositionierung auslösen
+(yaml: `enforce_positioning_entity: <entity>`)
+
+Dieser Eingang kann mit einer Boolean-Entität verknüpft werden. Wird diese Entität auf 'on' gestellt, wird die unmittelbare positionierung erzwungen. Das ist hilfreich, wenn die tatsächliche Behangposition nicht mehr mit der von der Integration angenommenen Position übereinstimmt, sollte aber im Normalfall deaktiviert bleiben. Anderenfalls werden die Lamellen mglw. ständig nur geschlossen und wieder geöffnet, weil Raffstoren technisch immer erst die Höhe und danach den Lamellenwinkel anfahren.
+
+Zusätzlich zur vorherigen Entitätskonfiguration kann diese Push-Button-Entität auf Detailseite der Instanz verwendet werden, um die Behangpositionierung einmalig zu erzwingen. Wenn dieser Knopf gedrückt wird, wird der Behang entsprechend der berechneten Werte positioniert.
+
+
+
+
+
+### Beschattungseinstellungen
+
+Die Beschattungseinstellungen verwenden den Präfix **B&lt;nummer&gt;**, um eine logische Gruppierung resp. Reihenfolge der Optionen zu erreichen. Damit werden die konfigurierten Werte in der Instanz-Ansicht auch in dieser Reihenfolge dargestellt. Zu beachten ist, dass eine Option nur dann unter **Steuerelemente** zu sehen ist, wenn _keine_ Entität darauf konfiguriert wurde. Anderenfalls ist sie unter **Sensoren** zu finden und zeigt den Wert der konfigurierten Entität. Hier beispielhaft der Anfang der Steuerelemente:
+
+![Steuerelemente](/images/controls.png)
+
+
+
+#### B01 Steuerung aktiv
+(yaml: `shadow_control_enabled_manual: true|false` u/o `shadow_control_enabled_entity: <entity>`)
+
+Mit dieser Option wird die Beschattungssteuerung ein- oder ausgeschaltet. Standardwert: ein
+
+#### B02 Winter Helligkeitsschwellwert
+(yaml: `shadow_brightness_threshold_winter_manual: <Wert>` u/o `shadow_brightness_threshold_winter_entity: <entity>`)
+
+##### Konstante Beschattungssteuerung
+Hier wird der Helligkeitsschwellwert in Lux konfiguriert. Wird dieser Wert überschritten, startet der Timer [B05 Schliessen nach x Sekunden](#b05-schliessen-nach-x-sekunden). Standardwert: 30000 
+
+##### Adaptive Beschattungssteuerung
+In Verbindung mit dem Parameter [B03 Sommer Helligkeitsschwellwert](#b03-sommer-helligkeitsschwellwert) and [B04 Minimaler Helligkeitsschwellwert](#b04-minimaler-helligkeitsschwellwert) kann der Helligkeitsunterschied zwischen Sommer und Winter ausgeglichen werden. Um diese Funktionalität zu aktivieren, muss der [B03 Sommer Helligkeitsschwellwert](#b03-sommer-helligkeitsschwellwert) auf einen grösseren Wert als der Winterschwellwert konfiguriert werden. 
+
+Beschreibung der Funktionalität siehe [Adaptiver Helligkeitsschwellwert](#adaptiver-helligkeitsschwellwert).
+
+#### B03 Sommer Helligkeitsschwellwert
+(yaml: `shadow_brightness_threshold_summer_manual: <Wert>` u/o `shadow_brightness_threshold_summer_entity: <entity>`)
+
+Zweiter Wert für die Adaptive Beschattungssteuerung. Beschreibung der Funktionalität siehe [Adaptiver Helligkeitsschwellwert](#adaptiver-helligkeitsschwellwert). Default: 50000
+
+#### B04 Minimaler Helligkeitsschwellwert
+(yaml: `shadow_brightness_threshold_minimal_manual: <Wert>` u/o `shadow_brightness_threshold_minimal_entity: <entity>`)
+
+Dieser Wert definiert den tiefsten Punkt der Sinuskurve, der Adaptiven Beschattungssteuerung, welcher am Sonnenaufgang und Sonnenuntergang erreicht wird. Der Wert darf nicht kleiner als der Dämmerungsschwellwert sein und wird daher ggf. entsprechend korrigiert.
+
+Beschreibung der Funktionalität siehe [Adaptiver Helligkeitsschwellwert](#adaptiver-helligkeitsschwellwert). Default: 20000
+
+#### B05 Schliessen nach x Sekunden
+(yaml: `shadow_after_seconds_manual: <Wert>` u/o `shadow_after_seconds_entity: <entity>`)
+
+Hier wird der Zeitraum in Sekunden konfiguriert, nachdem der Behang nach Überschreiten des [Helligkeitsschwellwertes](#b02-winter-helligkeitsschwellwert) geschlossen werden soll. Standardwert: 120
+
+#### B06 Maximale Behanghöhe
+(yaml: `shadow_shutter_max_height_manual: <Wert>` u/o `shadow_shutter_max_height_entity: <entity>`)
+
+Hier kann die maximale Behanghöhe angegeben werden. Das wird bspw. verwendet, um den Behang nicht bis ganz auf den Boden zu fahren, damit ein festfrieren im Winter vermieden wird. Standardwert: 100 
+
+#### B07 Maximaler Lamellenwinkel
+(yaml: `shadow_shutter_max_angle_manual: <Wert>` u/o `shadow_shutter_max_angle_entity: <entity>`)
+
+Hier kann der maximale Lamellenwinkel angegeben werden. Das wird bspw. verwendet, um den Behang nicht ganz zu schliessen, damit ein zusammenfrieren der Lamellen im Winter vermieden wird. Standardwert: 100
+
+#### B08 Durchsicht nach x Sekunden
+(yaml: `shadow_shutter_look_through_seconds_manual: <Wert>` u/o `shadow_shutter_look_through_seconds_entity: <entity>`)
+
+Fällt die Helligkeit unter den Schwellwert von [B02 Winter Helligkeitsschwellwert](#b02-winter-helligkeitsschwellwert), wird der Behang nach der hier angegeben Zeit auf Durchsichtsposition gefahren. Standardwert: 900
+
+#### B09 Durchsichtwinkel
+(yaml: `shadow_shutter_look_through_angle_manual: <Wert>` u/o `shadow_shutter_look_through_angle_entity: <entity>`)
+
+Hier wird der Lamellenwinkel der Durchsichtsposition in % konfiguriert. Standardwert: 0
+
+#### B10 Öffnen nach x Sekunden
+(yaml: `shadow_shutter_open_seconds_manual: <Wert>` u/o `shadow_shutter_open_seconds_entity: <entity>`)
+
+Nachdem der Behang auf Durchsichtsposition gefahren wurde, wird er nach der hier konfigurierten Zeit ganz geöffnet. Standardwert: 3600
+
+#### B11 Höhe nach Beschattung
+(yaml: `shadow_height_after_sun_manual: <Wert>` u/o `shadow_height_after_sun_entity: <entity>`)
+
+Wenn keine Beschattungssituation mehr vorliegt, wird der Behang auf die hier in % konfigurierte Höhe gefahren. Standardwert: 0
+
+#### B12 Winkel nach Beschattung
+(yaml: `shadow_angle_after_sun_manual: <Wert>` u/o `shadow_angle_after_sun_entity: <entity>`)
+
+Wenn keine Beschattungssituation mehr vorliegt, wird der Behang auf den hier in % konfigurierten Lamellenwinkel gefahren. Standardwert: 0
+
+
+
+
+
+### Dämmerungseinstellungen
+
+Die Dämmerungseinstellungen verwenden den Präfix **D&lt;nummer&gt;**, um eine logische Gruppierung resp. Reihenfolge der Optionen zu erreichen. Damit werden die konfigurierten Werte in der Instanz-Ansicht auch in dieser Reihenfolge dargestellt. Zu beachten ist, dass eine Option nur dann unter **Steuerelemente** zu sehen ist, wenn _keine_ Entität darauf konfiguriert wurde. Anderenfalls ist sie unter **Sensoren** zu finden und zeigt den Wert der konfigurierten Entität. Hier beispielhaft der Anfang der Steuerelemente:
+
+![Steuerelemente](/images/controls.png)
+
+
+
+#### D01 Steuerung aktiv
+(yaml: `dawn_control_enabled_manual: true|false` u/o `dawn_control_enabled_entity: <entity>`)
+
+Mit dieser Option wird die Dämmerungssteuerung ein- oder ausgeschaltet. Standardwert: ein
+
+#### D02 Dämmerungsschwellwert
+(yaml: `dawn_brightness_threshold_manual: <Wert>` u/o `dawn_brightness_threshold_entity: <entity>`)
+
+Hier wird der Helligkeitsschwellwert in Lux konfiguriert. Wird dieser Wert unterschritten, startet der Timer [D03 Schliessen nach x Sekunden](#d03-schliessen-nach-x-sekunden). Standardwert: 500
+
+#### D03 Schliessen nach x Sekunden
+(yaml: `dawn_after_seconds_manual: <Wert>` u/o `dawn_after_seconds_entity: <entity>`)
+
+Hier wird der Zeitraum in Sekunden konfiguriert, nachdem der Behang nach Unterschreiten des [Helligkeitsschwellwertes](#d02-dämmerungsschwellwert) geschlossen werden soll. Standardwert: 120
+
+#### D04 Maximale Behanghöhe
+(yaml: `dawn_shutter_max_height_manual: <Wert>` u/o `dawn_shutter_max_height_entity: <entity>`)
+
+Hier kann die maximale Behanghöhe angegeben werden. Das wird bspw. verwendet, um den Behang nicht bis ganz auf den Boden zu fahren, damit ein festfrieren im Winter vermieden wird. Standardwert: 100
+
+#### D05 Maximaler Lamellenwinkel
+(yaml: `dawn_shutter_max_angle_manual: <Wert>` u/o `dawn_shutter_max_angle_entity: <entity>`)
+
+Hier kann der maximale Lamellenwinkel angegeben werden. Das wird bspw. verwendet, um den Behang nicht ganz zu schliessen, damit ein zusammenfrieren der Lamellen im Winter vermieden wird. Standardwert: 100
+
+#### D06 Durchsicht nach x Sekunden
+(yaml: `dawn_shutter_look_through_seconds_manual: <Wert>` u/o `dawn_shutter_look_through_seconds_entity: <entity>`)
+
+Steigt die Helligkeit über den Schwellwert von [D02 Dämmerungsschwellwert](#d02-dämmerungsschwellwert), wird der Behang nach der hier angegeben Zeit auf Durchsichtposition gefahren. Standardwert: 120
+
+#### D07 Durchsichtwinkel
+(yaml: `dawn_shutter_look_through_angle_manual: <Wert>` u/o `dawn_shutter_look_through_angle_entity: <entity>`)
+
+Hier wird der Lamellenwinkel der Durchsichtsposition in % konfiguriert. Standardwert: 0
+
+#### D08 Öffnen nach x Sekunden
+(yaml: `dawn_shutter_open_seconds_manual: <Wert>` u/o `dawn_shutter_open_seconds_entity: <entity>`)
+
+Nachdem der Behang auf Durchsichtsposition gefahren wurde, wird er nach der hier konfigurierten Zeit ganz geöffnet. Standardwert: 3600
+
+#### D09 Höhe nach Dämmerung
+(yaml: `dawn_height_after_dawn_manual: <Wert>` u/o `dawn_height_after_dawn_entity: <entity>`)
+
+Wenn keine Dämmerungssituation mehr vorliegt, wird der Behang auf die hier in % konfigurierte Höhe gefahren. Standardwert: 0
+
+#### D10 Winkel nach Dämmerung
+(yaml: `dawn_angle_after_dawn_manual: <Wert>` u/o `dawn_angle_after_dawn_entity: <entity>`)
+
+Wenn keine Dämmerungssituation mehr vorliegt, wird der Behang auf den hier in % konfigurierten Lamellenwinkel gefahren. Standardwert: 0
+
+#### D11 Frühestens öffnen um (Uhrzeit)
+(yaml: `dawn_open_not_before_entity: <entity>` u/o `dawn_open_not_before_manual: "HH:MM"`)
+
+Diese optionale Zeitbeschränkung verhindert, dass der Behang vor der angegebenen Uhrzeit am Morgen öffnet, selbst wenn der Helligkeitsschwellwert überschritten wird. Dies ist nützlich, um zu frühes Öffnen im Sommer zu verhindern, wenn es sehr früh hell wird.
+
+**Logik:** Der Behang öffnet nur, wenn **beide** Bedingungen erfüllt sind:
+1. Helligkeit ≥ [D02 Dämmerungsschwellwert](#d02-dämmerungsschwellwert)
+2. Aktuelle Uhrzeit ≥ Frühestens-öffnen-Zeit
+
+**Anwendungsbeispiele:**
+- **Wochentage:** Auf `06:00` setzen, um Öffnen vor 6 Uhr morgens an Arbeitstagen zu verhindern
+- **Wochenende:** Eine Entität (`input_datetime`) verwenden, die via Automation automatisch angepasst wird (z.B. `06:00` Mo-Fr, `08:00` Sa-So)
+- **Sommer-Szenario:** Im Sommer wird der Helligkeitsschwellwert bereits um 5 Uhr erreicht, aber der Behang soll erst um 6 Uhr öffnen
+
+**Konfiguration:**
+- **Entitäts-Variante:** Referenziert eine `input_datetime`-Entität, die die Uhrzeit liefert. Dies ermöglicht dynamische Anpassung (z.B. via Automationen für Wochentag/Wochenende-Unterschiede)
+- **Manuelle Variante:** Feste Uhrzeit im Format `HH:MM` eingeben (z.B. `06:00` für 6 Uhr morgens)
+- **Standardwert:** None (Feature deaktiviert - nur Helligkeitsschwellwert gilt)
+- Deaktivieren der Funktionalität durch Löschen der konfigurierten Uhrzeit bzw. durch Setzen auf den Wert `00:00`.
+
+**Format:** `HH:MM` (24-Stunden-Format, z.B. `06:00`, `08:30`, `23:45`)
+
+#### D12 Spätestens schließen um (Uhrzeit)
+(yaml: `dawn_close_not_later_than_entity: <entity>` u/o `dawn_close_not_later_than_manual: "HH:MM"`)
+
+Diese optionale Zeitbeschränkung stellt sicher, dass der Behang zur angegebenen Uhrzeit am Abend schließt, unabhängig von der Helligkeit. Dies garantiert Privatsphäre oder Sicherheit auch wenn es draußen noch hell ist (z.B. im Sommer).
+
+**Logik:** Der Behang schließt, wenn **eine** der Bedingungen erfüllt ist:
+1. Helligkeit < [D02 Dämmerungsschwellwert](#d02-dämmerungsschwellwert) **ODER**
+2. Aktuelle Uhrzeit ≥ Spätestens-schließen-Zeit
+
+**Anwendungsbeispiele:**
+- **Privatsphäre:** Behang um 20 Uhr schließen, auch an hellen Sommerabenden
+- **Sicherheit:** Sicherstellen, dass Behänge zu einer bestimmten Zeit geschlossen sind, z.B. im Urlaub
+- **Winter-Szenario:** Im Winter wird es gegen 17 Uhr dunkel, der Behang schließt früh aufgrund der Helligkeit. Die Zeitbeschränkung hat keine Wirkung.
+- **Sommer-Szenario:** Im Sommer ist es um 20 Uhr noch hell, aber die Zeitbeschränkung löst trotzdem das Schließen aus.
+
+**Konfiguration:**
+- **Entitäts-Variante:** Referenziert eine `input_datetime`-Entität, die die Uhrzeit liefert. Dies ermöglicht dynamische Anpassung (z.B. unterschiedliche Zeiten für verschiedene Jahreszeiten)
+- **Manuelle Variante:** Feste Uhrzeit im Format `HH:MM` eingeben (z.B. `20:00` für 20 Uhr)
+- **Standardwert:** None (Feature deaktiviert - nur Helligkeitsschwellwert gilt)
+- Deaktivieren der Funktionalität durch Löschen der konfigurierten Uhrzeit bzw. durch Setzen auf den Wert `00:00`.
+
+**Format:** `HH:MM` (24-Stunden-Format, z.B. `20:00`, `21:30`, `22:00`)
+
+**Kombiniertes Beispiel:**
+* Winter (hell um 8 Uhr, dunkel um 17 Uhr):
+* Morgens: Helligkeitsschwellwert um 8 Uhr erreicht → Öffnet um 8 Uhr (Helligkeitsbedingung aktiv)
+* Abends: Helligkeitsschwellwert um 17 Uhr unterschritten → Schließt um 17 Uhr (Helligkeitsbedingung aktiv)
+
+```yaml
+dawn_open_not_before_manual: "06:00"
+dawn_close_not_later_than_manual: "20:00"
+```
+
+* Sommer (hell um 5 Uhr, dunkel um 22 Uhr):
+* Morgens: Helligkeitsschwellwert um 5 Uhr erreicht → Öffnet um 6 Uhr (Zeitbedingung aktiv)
+* Abends: Helligkeitsschwellwert um 22 Uhr unterschritten → Schließt um 20 Uhr (Zeitbedingung aktiv)
+
+```yaml
+dawn_open_not_before_manual: "06:00"
+dawn_close_not_later_than_manual: "20:00"
+```
+
+
+
+## Konfiguration via yaml
+
+Es ist möglich, die **Shadow Control** Instanzen via yaml zu konfigurieren. Dazu müssen die entsprechenden Konfigurationen im `configuration.yaml` einmalig eingetragen und Home Assistant neu gestartet werden. **Shadow Control** wird die yaml-Konfiguration einlesen und entsprechende Instanzen anlegen. Diese Instanzen können im Anschluss via ConfigFlow bearbeitet werden. Änderungen an der yaml-Konfiguration werden nicht übernommen, da die gesamte Konfiguration via Home Assistant ConfigFlow abgebildet wird. Sollen die yaml-Konfigurationen dennoch neu eingelesen werden, müssen die entsprechenden **Shadow Control** Instanzen zunächst gelöscht und dann Home Assistant neu gestartet werden.
+
+### yaml Beispielkonfiguration
+
+Die Einträge der Konfiguration folgen den oben in der Dokumentation jeweils genannten Schlüsselwörtern. Nicht verwendete Schlüsselwörter müssen auskommentiert oder entfernt werden.
+
+```yaml
+shadow_control:
+  - name: "Büro West"
+    #
+    # Configure shutter mode by entering 'mode1', 'mode2' or 'mode3'
+    # All *_angle_* settings will be ignored on mode3
+    facade_shutter_type_static: mode1
+    #
+    # List of cover entities to handle by this Shadow Control instance
+    target_cover_entity:
+      - cover.fenster_buro_west
+    #
+    # Enable debug mode for way more log output
+    debug_enabled: false
+    #
+    # Alle Log-Ausgaben dieser Instanz zusätzlich in eine eigene Logdatei im
+    # HA-Konfigurationsverzeichnis schreiben (shadow_control_<name>.log, max 5 MB x 3 Backups)
+    own_logfile_enabled: false
+    #
+    # =======================================================================
+    # Dynamic configuration inputs
+    #
+    # Entity which holds the current brightness
+    brightness_entity: input_number.d01_brightness
+    # Entity which holds the current dawn brightness. See the description above.
+    #brightness_dawn_entity: input_number.d02_brightness_dawn
+    #
+    # Entities holding the current sun position
+    #sun_elevation_entity: sun.sun
+    #sun_azimuth_entity: sun.sun
+    #
+    # Entities with next sunrise/sunset for adaptive brightness calculation
+    #sunrise_entity: sensor.sun_next_rising
+    #sunset_entity: sensor.sun_next_setting
+    #
+    # Entities to lock the integration
+    lock_integration_manual: false
+    lock_integration_with_position_manual: false
+    #lock_integration_entity: input_boolean.d07_lock_integration
+    #lock_integration_with_position_entity: input_boolean.d08_lock_integration_with_position
+    #
+    # Lock with position height and angle values if lock_integration_with_position is used
+    # Range from 0-100 as percent values
+    lock_height_manual: 0
+    lock_angle_manual: 0
+    #
+    # Lock with position height and angle entities if lock_integration_with_position is used
+    #lock_height_entity: input_number.lock_height_entity
+    #lock_angle_entity: input_number.lock_angle_entity
+    #
+    # One of 'no_restriction', 'only_open' or 'only_close' must be given, if this option is used.
+    # But in fact it makes no sense to configure something here as the shutter will not be moved 
+    # anymore as soon as the final position is reached. This option is mainly used at the
+    # maintenance page of a configured instance, to temporarily restrict the movement manually.
+    movement_restriction_height_manual: no_restriction
+    movement_restriction_angle_manual: no_restriction
+    #
+    # Entities to restrict the movement direction
+    #movement_restriction_height_entity:
+    #movement_restriction_angle_entity:
+    #
+    # Entity to enforce the shutter positioning
+    #enforce_positioning_entity: input_button.d13_enforce_positioning
+    #
+    # =======================================================================
+    # General facade configuration
+    facade_azimuth_static: 180
+    facade_offset_sun_in_static: -90
+    facade_offset_sun_out_static: 90
+    facade_elevation_sun_min_static: 0
+    facade_elevation_sun_max_static: 90
+    facade_slat_width_static: 95
+    facade_slat_distance_static: 67
+    facade_slat_angle_offset_static: 0
+    facade_slat_min_angle_static: 0
+    facade_shutter_stepping_height_static: 5
+    facade_shutter_stepping_angle_static: 5
+    facade_light_strip_width_static: 0
+    facade_shutter_height_static: 1000
+    facade_neutral_pos_height_manual: 0
+    facade_neutral_pos_angle_manual: 0
+    #facade_neutral_pos_height_entity: input_number.facade_neutral_pos_height_entity
+    #facade_neutral_pos_angle_entity: input_number.facade_neutral_pos_angle_entity
+    facade_max_movement_duration_static: 35
+    facade_modification_tolerance_height_static: 8
+    facade_modification_tolerance_angle_static: 5
+    #
+    # =======================================================================
+    # Shadow configuration
+    #shadow_control_enabled_entity:
+    shadow_control_enabled_manual: true
+    #shadow_brightness_threshold_winter_entity:
+    #shadow_brightness_threshold_winter_manual: 30000
+    #shadow_brightness_threshold_summer_entity:
+    #shadow_brightness_threshold_summer_manual: 50000
+    #shadow_brightness_threshold_minimal_entity:
+    #shadow_brightness_threshold_minimal_manual: 20000
+    #shadow_after_seconds_entity:
+    shadow_after_seconds_manual: 15
+    #shadow_shutter_max_height_entity:
+    shadow_shutter_max_height_manual: 100
+    #shadow_shutter_max_angle_entity:
+    shadow_shutter_max_angle_manual: 100
+    #shadow_shutter_look_through_seconds_entity:
+    shadow_shutter_look_through_seconds_manual: 15
+    #shadow_shutter_open_seconds_entity:
+    shadow_shutter_open_seconds_manual: 15
+    #shadow_shutter_look_through_angle_entity:
+    shadow_shutter_look_through_angle_manual: 0
+    #shadow_height_after_sun_entity:
+    shadow_height_after_sun_manual: 0
+    #shadow_angle_after_sun_entity:
+    shadow_angle_after_sun_manual: 0
+    #
+    # =======================================================================
+    # Dawn configuration
+    #dawn_control_enabled_entity:
+    dawn_control_enabled_manual: true
+    #dawn_brightness_threshold_entity:
+    dawn_brightness_threshold_manual: 500
+    #dawn_after_seconds_entity:
+    dawn_after_seconds_manual: 15
+    #dawn_shutter_max_height_entity:
+    dawn_shutter_max_height_manual: 100
+    #dawn_shutter_max_angle_entity:
+    dawn_shutter_max_angle_manual: 100
+    #dawn_shutter_look_through_seconds_entity:
+    dawn_shutter_look_through_seconds_manual: 15
+    #dawn_shutter_open_seconds_entity:
+    dawn_shutter_open_seconds_manual: 15
+    #dawn_shutter_look_through_angle_entity:
+    dawn_shutter_look_through_angle_manual: 50
+    #dawn_height_after_dawn_entity:
+    dawn_height_after_dawn_manual: 0
+    #dawn_angle_after_dawn_entity:
+    dawn_angle_after_dawn_manual: 0
+    #dawn_open_not_before_entity: 
+    #dawn_open_not_before_manual: "06:00"
+    #dawn_close_not_later_than_entity:
+    #dawn_close_not_later_than_manual: "20:00"
+```
+# Status, Rückgabewerte und direkte Optionen
+
+Jede Instanz von **Shadow Control** legt in Home Assistant ein Gerät an, unter dem diverse Entitäten zur weiteren Verwendung zur Verfügung stehen. Hier ein Beispiel, wie das aussieht:
+
+![Sensoren](/images/sensors.png)
+
+## Status-Werte
+
+### Zielhöhe
+`target_height`
+Hier ist die verwendete Höhe des Behangs zu finden.
+
+### Zielwinkel
+`target_angle`
+Hier ist der verwendete Lamellenwinkel des Behangs zu finden. Diese Entität ist nur bei Behangtyp `mode1` und `mode2` verfügbar.
+
+### Zielwinkel in Grad
+`target_angle_degrees`
+Hier ist der verwendete Lamellenwinkel des Behangs in Grad (°) zu finden. Diese Entität ist nur bei Behangtyp `mode1` und `mode2` verfügbar.
+
+### Kalkulatorische Zielhöhe
+`computed_height`
+Hier ist die errechnete Höhe des Behangs zu finden. Dieser Wert kann sich von der tatsächlich angefahrenen Höhe unterscheiden, wenn bspw. eine Bewegungseinschränkung aktiv ist.
+
+### Kalkulatorischer Zielwinkel
+`computed_angle`
+Hier ist der errechnete Lamellenwinkel des Behangs zu finden. Dieser Wert kann sich von dem tatsächlich angefahrenen Lamellenwinkel unterscheiden, wenn bspw. eine Bewegungseinschränkung aktiv ist. Diese Entität ist nur bei Behangtyp `mode1` und `mode2` verfügbar.
+
+### Aktueller Status
+`current_state` / `current_state_text`
+Der aktuelle interne Status von **Shadow Control** wird unter `current_state` als numerischer Wert ausgegeben. Dabei sind die folgenden Status resp. Werte möglich, welche für weitere eigenen Automatisierungen verwendet werden können:
+
+* SHADOW_FULL_CLOSE_TIMER_RUNNING = 6
+* SHADOW_FULL_CLOSED = 5
+* SHADOW_HORIZONTAL_NEUTRAL_TIMER_RUNNING = 4
+* SHADOW_HORIZONTAL_NEUTRAL = 3
+* SHADOW_NEUTRAL_TIMER_RUNNING = 2
+* SHADOW_NEUTRAL = 1
+* NEUTRAL = 0
+* DAWN_NEUTRAL = -1
+* DAWN_NEUTRAL_TIMER_RUNNING = -2
+* DAWN_HORIZONTAL_NEUTRAL = -3
+* DAWN_HORIZONTAL_NEUTRAL_TIMER_RUNNING = -4
+* DAWN_FULL_CLOSED = -5
+* DAWN_FULL_CLOSE_TIMER_RUNNING = -6
+
+Parallel zu `current_state` wird in der Entität `current_state_text` die Textform des aktuellen Status ausgegeben. Diese Zeichenkette kann direkt auf dem UI verwendet werden, um den momentanen Status einer **Shadow Control** Instanz anzuzeigen.
+
+### Sperr-Status
+`lock_state`
+Dieser Sensor bildet numerisch den aktuellen Sperrstatus der Instanz ab. Dabei gelten die folgenden Werte:
+
+* 0: entsperrt
+* 1: manuell gesperrt
+* 2: manuell gesperrt mit Zwangsposition
+* 3: gesperrt durch externe Modifikation
+
+### Nächste Behangmodifikation
+`next_shutter_modification`
+Auf dieser Entität steht der Zeitpunkt der nächsten Behang-Positionierung zur Verfügung, sofern gerade ein entsprechender Timer läuft.
+
+### In der Sonne
+`is_in_sun`
+Der Wert ist `True`, wenn sich die Sonne im min-max-Offsetbereich und min-max-Höhenbereich befindet. Anderenfalls `False`.
+
+### Aktiver Helligkeitsschwellwert
+`brightness_threshold_active`
+
+Gibt den aktiven Helligkeitsschwellwert an, welcher für die Beschattungssteuerung verwendet wird. Das kann entweder der konstante Winterschwellwert oder der adaptive Schwellwert sein, je nachdem wie die Konfiguration eingestellt ist.
+
+
+
+## Direkte Optionen
+
+Sämtliche Optionen, welche im ConfigFlow mit einer eigenen Entität konfiguriert werden können, sind auch direkt auf der Geräteseite der jeweiligen Instanz schaltbar. Das bedeutet, dass die Konfiguration nicht zwingend über den ConfigFlow erfolgen muss, sondern auch direkt über die Geräteseite angepasst werden kann. Alle Optionen sind als eigene, interne Entitäten verfügbar und können somit in eigenen Automationen verwendet werden. Sie sind direkt unter den Steuerelementen schaltbar. Das ermöglicht eine sehr flexible und schnelle Anpassung der Konfiguration im laufenden Betrieb.
+
+Sobald jedoch eine Option explizit mit einer eigenen Entität konfiguriert wurde, ist diese Option nicht mehr unter den Steuerelementen zu finden, sondern als Sensor mit dem Wert der verknüpften Entität. 
+
+![Steuerelemente](/images/controls.png)
+
+
+
+# Konfiguration-Export
+
+Da die **Shadow Control** Konfiguration sehr umfangreich ist, gibt es einen speziellen Service, um die aktuelle Konfiguration im YAML-Format im Log auszugeben. 
+
+## Vorarbeiten
+
+Damit das funktioniert, muss der Log-Modus von Home Assistant mindestens auf `info` stehen. In `configuration.yaml` muss dazu der folgende Eintrag vorhanden sein:
+
+```yaml
+logger:
+  default: info
+```
+
+Am einfachsten kommt man an die Log-Ausgabe via `Einstellungen -> System -> Protokolle`, dort dann oben rechts das 3-Punkt-Menü und Klick auf `unveränderte Protokolle anzeigen`. 
+
+## Anwendung des Service
+
+In einem zweiten Browser-Tab zu `Einstellungen -> Entwicklerwerkzeuge -> Aktionen` navigieren und dort mit der Suche nach `dump_sc_config` den Dump-Service aufrufen. Wird der Service ohne weitere Konfiguration ausgeführt, wird die Konfiguration der ersten **Shadow Control** Instanz im Log ausgegeben. Das sieht (gekürzt) in etwa wie folgt aus:
+
+```
+2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - START ===
+2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Full configuration:
+--- YAML dump start ---
+brightness_entity: input_number.d01_brightness
+dawn_after_seconds_manual: 10.0
+dawn_angle_after_dawn_manual: 80.0
+...
+name: SC Dummy
+...
+sun_azimuth_entity: input_number.d04_sun_azimuth
+sun_elevation_entity: input_number.d03_sun_elevation
+target_cover_entity:
+- cover.sc_dummy
+--- YAML dump end ---
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Associated Device: SC Dummy (id: 8d9324...
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Associated Entities:
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] - sensor.sc_dummy_hohe: State='80.0', A...
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] - sensor.sc_dummy_lamellenwinkel: State...
+...
+2025-07-06 21:12:57.139 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - END ===
+```
+
+Zwischen den beiden Marker-Zeilen `--- YAML dump start ---` und `--- YAML dump end ---` befindet sich die gesamte Konfiguration der Instanz im YAML-Format. Diese kann kopiert und gesichert oder auch als Basis für weitere Instanzen verwendet werden.
+
+Die auszugebende Konfiguration kann durch Angabe des entsprechenden Namens wie folgt angegeben werden:
+
+## UI-Modus
+
+```
+name: SC Dummy 3
+```
+
+## Yaml-Modus
+
+```yaml
+action: shadow_control.dump_sc_configuration
+data:
+  name: SC Dummy 3
+```
+
+
+[hacs]: https://hacs.xyz
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-blue?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc
+
+[ghs]: https://github.com/sponsors/starwarsfan
+[ghsbadge]: https://img.shields.io/github/sponsors/starwarsfan?style=for-the-badge&logo=github&logoColor=ccc&link=https%3A%2F%2Fgithub.com%2Fsponsors%2Fstarwarsfan&label=Sponsors
+
+[buymecoffee]: https://www.buymeacoffee.com/starwarsfan
+[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
+
+[paypal]: https://paypal.me/ysswf
+[paypalbadge]: https://img.shields.io/badge/paypal-me-blue.svg?style=for-the-badge&logo=paypal&logoColor=ccc
+
+[hainstall]: https://my.home-assistant.io/redirect/config_flow_start/?domain=shadow_control
+[hainstallbadge]: https://img.shields.io/badge/dynamic/json?style=for-the-badge&logo=home-assistant&logoColor=ccc&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.shadow_control.total
+
+[tests]: https://github.com/starwarsfan/shadow-control/actions/workflows/unittest.yml
+[tests-badge]: https://img.shields.io/github/actions/workflow/status/starwarsfan/shadow-control/unittest.yml?style=for-the-badge&logo=github&logoColor=ccc&label=Tests
+
+[coverage]: https://app.codecov.io/github/starwarsfan/shadow-control
+[coverage-badge]: https://img.shields.io/codecov/c/github/starwarsfan/shadow-control?style=for-the-badge&logo=codecov&logoColor=ccc&label=Coverage

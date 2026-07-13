@@ -1,0 +1,531 @@
+{
+  "title": "Shadow Control",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "name": "Instanzname",
+          "facade_shutter_type_static": "Behangtyp",
+          "target_cover_entity": "Behang-Entitäten",
+          "facade_azimuth_static": "Azimut",
+          "brightness_entity": "Helligkeit",
+          "sun_elevation_entity": "Höhe der Sonne",
+          "sun_azimuth_entity": "Azimut der Sonne"
+        },
+        "data_description": {
+          "name": "Eindeutiger Name dieser Shadow Control (SC) Instanz",
+          "facade_shutter_type_static": "Typ des Behangs auswählen",
+          "target_cover_entity": "Eine oder mehrere Behang-Entitäten, welche mit dieser Shadow Control (SC) Instanz gesteuert werden sollen",
+          "facade_azimuth_static": "Azimuth der Fassade in Grad mit Blickrichtung von innen nach aussen. Gültiger Bereich: 0° bis 359°",
+          "brightness_entity": "Aktuelle Helligkeit, üblicherweise von einer Wetterstation.",
+          "sun_elevation_entity": "Höhe der Sonne via Sun-Entität oder Wetterstation.",
+          "sun_azimuth_entity": "Winkel der Sonne via Sun-Entität oder Wetterstation."
+        }
+      },
+      "options": {
+        "title": "Konfigurierbare Optionen",
+        "description": "Alle konfigurierbaren Optionen dieser SC Instanz"
+      }
+    },
+    "error": {
+      "unknown": "Unknown error occurred.",
+      "name_missing": "Name wird zwingend benötigt.",
+      "target_cover_entity_missing": "Zu steuernde Entität muss ausgewählt werden.",
+      "facade_shutter_type_static_missing": "Bitte den Behangtyp konfigurieren.",
+      "dynamic_brightness_missing": "Entität mit aktueller Helligkeit fehlt",
+      "dynamic_sun_elevation_missing": "Entität mit aktueller Sonnenhöhe (Elevation) fehlt",
+      "dynamic_sun_azimuth_missing": "Entität mit aktuellem Sonnenwinkel (Azimut) fehlt"
+    },
+    "abort": {
+      "already_configured": "This entry is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "description": "Hier wird der erste Teil der Details der zu steuernden Fassade resp. des zu steuernden Fensters konfiguriert.",
+        "data": {
+          "name": "Instanzname",
+          "target_cover_entity": "Behang-Entität",
+          "facade_azimuth_static": "Azimut",
+          "facade_offset_sun_in_static": "Beschattungsbeginn",
+          "facade_offset_sun_out_static": "Beschattungsende",
+          "facade_elevation_sun_min_static": "Minimale Sonnenhöhe",
+          "facade_elevation_sun_max_static": "Maximale Sonnenhöhe",
+          "debug_enabled": "Debugmodus",
+          "own_logfile_enabled": "Eigene Logdatei"
+        },
+        "data_description": {
+          "name": "Eindeutiger Name dieser Shadow Control (SC) Instanz",
+          "target_cover_entity": "Behang, welcher mit dieser Shadow Control (SC) Instanz gehandhabt werden soll",
+          "facade_azimuth_static": "Azimuth der Fassade in Grad mit Blickrichtung von innen nach aussen. Gültiger Bereich: 0° bis 359°",
+          "facade_offset_sun_in_static": "Ab welchem Winkel ausgehend vom Azimut der Fassade scheint die Sonne auf die Fassade. Gültiger Bereich: -90° bis 0°",
+          "facade_offset_sun_out_static": "Bis zu welchem Winkel ausgehend vom Azimut der Fassade scheint die Sonne auf die Fassade. Gültiger Bereich: 0° bis 90°",
+          "facade_elevation_sun_min_static": "Minimale Höhe der Sonne in Grad (°), ab welcher die Sonne auf die Fassade scheint. Gültiger Bereich: 0° bis 90°",
+          "facade_elevation_sun_max_static": "Maximale Höhe der Sonne in Grad (°), bis zu welcher die Sonne auf die Fassade scheint. Gültiger Bereich: 0° bis 90°",
+          "debug_enabled": "Debug-Logs für diese Instanz aktivieren",
+          "own_logfile_enabled": "Alle Log-Ausgaben dieser Instanz zusätzlich in eine eigene Logdatei im HA-Konfigurationsverzeichnis schreiben (shadow_control_NAME.log, max. 5 MB × 3 Backups)"
+        }
+      },
+      "facade_settings": {
+        "title": "Fassadenkonfiguration - Teil 2",
+        "description": "Hier wird der zweite Teil der Details der zu steuernden Fassade resp. des zu steuernden Fensters konfiguriert.",
+        "data": {
+          "facade_neutral_pos_height_entity": "Neutralhöhe",
+          "facade_neutral_pos_angle_entity": "Neutralwinkel",
+          "facade_slat_width_static": "Lamellenbreite",
+          "facade_slat_distance_static": "Lamellenabstand",
+          "facade_slat_angle_offset_static": "Lamellenwinkeloffset",
+          "facade_slat_min_angle_static": "Minimaler Lamellenwinkel",
+          "facade_shutter_stepping_height_static": "Höhenschrittweite",
+          "facade_shutter_stepping_angle_static": "Winkelschrittweite",
+          "facade_light_strip_width_static": "Lichtstreifenbreite",
+          "facade_shutter_height_static": "Gesamthöhe",
+          "facade_max_movement_duration_static": "Maximale Verfahrdauer",
+          "facade_modification_tolerance_height_static": "Toleranz Höhenänderung",
+          "facade_modification_tolerance_angle_static": "Toleranz Lamellenwinkeländerung"
+        },
+        "data_description": {
+          "facade_neutral_pos_height_entity": "Anzufahrende Höhe in Neutralposition (via Entität).",
+          "facade_neutral_pos_angle_entity": "Anzufahrender Winkel in Neutralposition (via Entität).",
+          "facade_slat_width_static": "Breite der Raffstorelamellen in mm.",
+          "facade_slat_distance_static": "Abstand der Raffstorelamellen zueinander in mm.",
+          "facade_slat_angle_offset_static": "Lamellenwinkeloffset in %. Dieser Wert wird zum berechneten %-Wert der Lamellenstellung im Beschattungsfall addiert und kann verwendet werden, um den errechneten Winkel falls notwendig zu korrigieren",
+          "facade_slat_min_angle_static": "Minimaler Winkel der Raffstore-Lamellen bei Beschattung in %. Lamellen werden im Beschattungsfall nur im Bereich von diesem Wert bis 100% bewegt. Default: 0",
+          "facade_shutter_stepping_height_static": "Schrittweite der Höhenverstellung in %, um kleine und damit nicht positionierbare Verstellungen auszugleichen. Default: 5",
+          "facade_shutter_stepping_angle_static": "Schrittweite der Lamellenverstellung in %, um kleine und damit nicht positionierbare Verstellungen auszugleichen. Default: 5",
+          "facade_light_strip_width_static": "Breite eines Lichtstreifens auf dem Boden.",
+          "facade_shutter_height_static": "Gesamthöhe des Behangs resp. des Fensters bzw. der Tür. Wird für die Berechnung des Lichtstreifens aus der vorherigen Einstellung benötigt.",
+          "facade_max_movement_duration_static": "Dauer einer Gesamtfahrt, also von ganz geschlossen bis ganz offen in Sekunden.",
+          "facade_modification_tolerance_height_static": "Toleranzbereich, in dem keine Höhenanpassung erfolgt.",
+          "facade_modification_tolerance_angle_static": "Toleranzbereich, in dem keine Lamellenwinkelanpassung erfolgt."
+        }
+      },
+      "dynamic_inputs": {
+        "title": "Dynamische Eingänge",
+        "description": "Konfiguration der dynamischen Eingänge für die automatische Steuerung der verbundenen Behang-Entität",
+        "data": {
+          "brightness_entity": "Helligkeit",
+          "brightness_dawn_entity": "Helligkeit (Dämmerung)",
+          "sun_elevation_entity": "Höhe der Sonne",
+          "sun_azimuth_entity": "Azimut der Sonne",
+          "sunrise_entity": "Sonnenaufgang",
+          "sunset_entity": "Sonnenuntergang",
+          "shutter_current_height_entity": "Aktuelle Behanghöhe",
+          "shutter_current_angle_entity": "Aktueller Behangwinkel",
+          "lock_integration_entity": "Integration sperren",
+          "lock_integration_with_position_entity": "Integration mit Zwangsposition sperren",
+          "lock_height_entity": "Zwangsposition Höhe",
+          "lock_angle_entity": "Zwangsposition Lamellenwinkel",
+          "movement_restriction_height_entity": "Höhenveränderung einschränken",
+          "movement_restriction_angle_entity": "Winkelveränderung einschränken",
+          "enforce_positioning_entity": "Zwangspositionierung auslösen",
+          "unlock_integration_entity": "Instanz entsperren"
+        },
+        "data_description": {
+          "brightness_entity": "Aktuelle Helligkeit, üblicherweise von einer Wetterstation.",
+          "brightness_dawn_entity": "Dämmerungshelligkeit. I.d.R. der Mittelwert mehrerer Helligkeitssensoren.",
+          "sun_elevation_entity": "Höhe der Sonne via Sun-Entität oder Wetterstation.",
+          "sun_azimuth_entity": "Winkel der Sonne via Sun-Entität oder Wetterstation.",
+          "sunrise_entity": "Sonnenaufgang via Sun-Entität oder Wetterstation.",
+          "sunset_entity": "Sonnenuntergang via Sun-Entität oder Wetterstation.",
+          "shutter_current_height_entity": "Aktuelle Behanghöhe als Rückmeldeobjekt vom Aktor.",
+          "shutter_current_angle_entity": "Aktueller Lamellenwinkel als Rückmeldeobjekt von Aktor.",
+          "lock_integration_entity": "Sperren der gesamten Integration, so dass keine Behangpositionierung erfolgt (via Entität).",
+          "lock_integration_with_position_entity": "Sperren der gesamten Integration mit Anfahren einer Zwangsposition (via Entität)",
+          "lock_height_entity": "Anzufahrende Höhe bei Zwangsposition (via Entität)",
+          "lock_angle_entity": "Anzufahrender Lamellenwinkel bei Zwangsposition (via Entität)",
+          "movement_restriction_height_entity": "Einschränkung der Höhenpositionierung via Entität, um unnötiges Verfahren des Behangs bspw. zwischen Beschattung und Dämmerung zu vermeiden.",
+          "movement_restriction_angle_entity": "Einschränkung der Winkelpositionierung via Entität, um unnötiges Verfahren des Behangs bspw. zwischen Beschattung und Dämmerung zu vermeiden.",
+          "enforce_positioning_entity": "Wird dieser Eingang mit 'on' beschrieben, wird erzwungen, den Behang immer auf die aktuell gültige Position zu fahren.",
+          "unlock_integration_entity": "Wird dieser Eingang mit 'on' beschrieben, wird die Instanz entsperrt."
+        }
+      },
+      "shadow_settings": {
+        "title": "Beschattung konfigurieren",
+        "description": "Konfiguriere wie mit dem Lichteinfall auf der Fassade umgegangen werden soll",
+        "data": {
+          "shadow_control_enabled_entity": "B01 Steuerung aktiv",
+          "shadow_brightness_threshold_winter_entity": "B02 Winter Helligkeitsschwellwert",
+          "shadow_brightness_threshold_summer_entity": "B03 Sommer Helligkeitsschwellwert",
+          "shadow_brightness_threshold_minimal_entity": "B04 Minimaler Helligkeitsschwellwert",
+          "shadow_after_seconds_entity": "B05 Schliessen nach x Sekunden",
+          "shadow_shutter_max_height_entity": "B06 Maximale Behanghöhe",
+          "shadow_shutter_max_angle_entity": "B07 Maximaler Lamellenwinkel",
+          "shadow_shutter_look_through_seconds_entity": "B08 Durchsicht nach x Sekunden",
+          "shadow_shutter_look_through_angle_entity": "B09 Durchsichtwinkel",
+          "shadow_shutter_open_seconds_entity": "B10 Öffnen nach x Sekunden",
+          "shadow_height_after_sun_entity": "B11 Höhe nach Beschattung",
+          "shadow_angle_after_sun_entity": "B12 Winkel nach Beschattung"
+        },
+        "data_description": {
+          "shadow_control_enabled_entity": "De-/Aktivieren der Beschattungssteuerung (via Entität).",
+          "shadow_brightness_threshold_winter_entity": "Schwellwert, nach dessen überschreiten die Beschattung im Winter ausgelöst wird (via Entität).",
+          "shadow_brightness_threshold_summer_entity": "Schwellwert, nach dessen überschreiten die Beschattung im Sommer ausgelöst wird (via Entität).",
+          "shadow_brightness_threshold_minimal_entity": "Minimaler Schwellwert, welcher bei adaptiver Beschattungssteuerung den tiefsten Punkt der Sinuskurve definiert, welcher bei Sonnenauf- und Sonnenuntergang erreicht wird.",
+          "shadow_after_seconds_entity": "Zeit in Sekunden nach überschreiten des Helligkeitsschwellwerts, nach welcher der Behang geschlossen wird (via Entität).",
+          "shadow_shutter_max_height_entity": "Maximal anzufahrende Höhe bei Beschattung (via Entität).",
+          "shadow_shutter_max_angle_entity": "Maximal anzufahrender Winkel bei Beschattung (via Entität).",
+          "shadow_shutter_look_through_seconds_entity": "Zeit in Sekunden nach unterschreiten des Helligkeitsschwellwerts, nach welcher der Behang auf Durchsicht gestellt wird (via Entität).",
+          "shadow_shutter_look_through_angle_entity": "Lamellenwinkel für Durchsichtstellung (via Entität).",
+          "shadow_shutter_open_seconds_entity": "Zeit in Sekunden nach Durchsichtstellung, nach welcher der Behang geöffnet wird (via Entität).",
+          "shadow_height_after_sun_entity": "Nach Beschattung anzufahrende Behanghöhe (via Entität).",
+          "shadow_angle_after_sun_entity": "Nach Beschattung anzufahrender Lamellenwinkel (via Entität)."
+        }
+      },
+      "dawn_settings": {
+        "title": "Dämmerung konfigurieren",
+        "description": "Konfiguriere wie der Behang bei Dämmerung gesteuert werden soll",
+        "data": {
+          "dawn_control_enabled_entity": "D01 Steuerung aktiv",
+          "dawn_brightness_threshold_entity": "D02 Dämmerungsschwellwert",
+          "dawn_after_seconds_entity": "D03 Schliessen nach x Sekunden",
+          "dawn_shutter_max_height_entity": "D04 Maximale Behanghöhe",
+          "dawn_shutter_max_angle_entity": "D05 Maximaler Lamellenwinkel",
+          "dawn_shutter_look_through_seconds_entity": "D06 Durchsicht nach x Sekunden",
+          "dawn_shutter_look_through_angle_entity": "D07 Durchsichtwinkel",
+          "dawn_shutter_open_seconds_entity": "D08 Öffnen nach x Sekunden",
+          "dawn_height_after_dawn_entity": "D09 Höhe nach Dämmerung",
+          "dawn_angle_after_dawn_entity": "D10 Winkel nach Dämmerung",
+          "dawn_open_not_before_entity": "D11 Frühestens öffnen um",
+          "dawn_close_not_later_than_entity": "D12 Spätestens schließen um"
+        },
+        "data_description": {
+          "dawn_control_enabled_entity": "De-/Aktivieren der Dämmerungssteuerung (via Entität).",
+          "dawn_brightness_threshold_entity": "Schwellwert, nach dessen unterschreiten die Dämmerungsposition angefahren wird (via Entität).",
+          "dawn_after_seconds_entity": "Zeit in Sekunden nach überschreiten des Helligkeitsschwellwerts, nach welcher der Behang geöffnet wird (via Entität).",
+          "dawn_shutter_max_height_entity": "Maximal anzufahrende Höhe bei Dämmerung (via Entität).",
+          "dawn_shutter_max_angle_entity": "Maximal anzufahrender Winkel bei Dämmerung (via Entität).",
+          "dawn_shutter_look_through_seconds_entity": "Zeit in Sekunden nach überschreiten des Helligkeitsschwellwerts, nach welcher der Behang auf Durchsicht gestellt wird (via Entität).",
+          "dawn_shutter_look_through_angle_entity": "Lamellenwinkel für Durchsichtstellung (via Entität).",
+          "dawn_shutter_open_seconds_entity": "Zeit in Sekunden nach Durchsichtstellung, nach welcher der Behang geöffnet wird (via Entität).",
+          "dawn_height_after_dawn_entity": "Nach Dämmerung anzufahrende Behanghöhe (via Entität).",
+          "dawn_angle_after_dawn_entity": "Nach Dämmerung anzufahrender Lamellenwinkel (via Entität).",
+          "dawn_open_not_before_entity": "Entität (input_datetime), die die früheste Uhrzeit zum Öffnen des Behangs am Morgen definiert. Der Behang öffnet nicht vor dieser Zeit, selbst wenn die Helligkeitsschwelle überschritten wird.",
+          "dawn_close_not_later_than_entity": "Entität (input_datetime), die die späteste Uhrzeit zum Schließen des Behangs am Abend definiert. Der Behang schließt zu dieser Zeit unabhängig von der Helligkeit."
+        }
+      },
+      "options": {
+        "title": "Konfigurierbare Optionen",
+        "description": "Alle konfigurierbaren Optionen dieser SC Instanz"
+      }
+    },
+    "error": {
+      "unknown": "Unknown error occurred.",
+      "target_cover_entity": "Zu steuernde Entität muss ausgewählt werden.",
+      "minGreaterThanMax": "Min-Wert muss kleiner als Max-Wert sein",
+      "dynamic_brightness_missing": "Entität mit aktueller Helligkeit fehlt",
+      "dynamic_sun_elevation_missing": "Entität mit aktueller Sonnenhöhe (Elevation) fehlt",
+      "dynamic_sun_azimuth_missing": "Entität mit aktuellem Sonnenwinkel (Azimut) fehlt"
+    },
+    "abort": {
+      "already_configured": "This entry is already configured."
+    }
+  },
+  "entity": {
+    "button": {
+      "enforce_positioning_manual": {
+        "name": "Positioniere!"
+      },
+      "unlock_integration_manual": {
+        "name": "Entsperren!"
+      }
+    },
+    "number": {
+      "lock_height_manual": {
+        "name": "Zwangsposition Höhe"
+      },
+      "lock_angle_manual": {
+        "name": "Zwangsposition Lamellenwinkel"
+      },
+      "facade_neutral_pos_height_manual": {
+        "name": "Neutrale Höhe"
+      },
+      "facade_neutral_pos_angle_manual": {
+        "name": "Neutraler Winkel"
+      },
+      "shadow_brightness_threshold_winter_manual": {
+        "name": "B02 Winter Helligkeitsschwellwert"
+      },
+      "shadow_brightness_threshold_summer_manual": {
+        "name": "B03 Sommer Helligkeitsschwellwert"
+      },
+      "shadow_brightness_threshold_minimal_manual": {
+        "name": "B04 Minimaler Helligkeitsschwellwert"
+      },
+      "shadow_after_seconds_manual": {
+        "name": "B05 Schliessen nach"
+      },
+      "shadow_shutter_max_height_manual": {
+        "name": "B06 max Höhe"
+      },
+      "shadow_shutter_max_angle_manual": {
+        "name": "B07 max Winkel"
+      },
+      "shadow_shutter_look_through_seconds_manual": {
+        "name": "B08 Durchsicht nach"
+      },
+      "shadow_shutter_look_through_angle_manual": {
+        "name": "B09 Durchsichtwinkel"
+      },
+      "shadow_shutter_open_seconds_manual": {
+        "name": "B10 Öffnen nach"
+      },
+      "shadow_height_after_sun_manual": {
+        "name": "B11 Höhe danach"
+      },
+      "shadow_angle_after_sun_manual": {
+        "name": "B12 Winkel danach"
+      },
+      "dawn_brightness_threshold_manual": {
+        "name": "D02 Dämmerungsschwellwert"
+      },
+      "dawn_after_seconds_manual": {
+        "name": "D03 Schliessen nach"
+      },
+      "dawn_shutter_max_height_manual": {
+        "name": "D04 max Höhe"
+      },
+      "dawn_shutter_max_angle_manual": {
+        "name": "D05 max Winkel"
+      },
+      "dawn_shutter_look_through_seconds_manual": {
+        "name": "D06 Durchsicht nach"
+      },
+      "dawn_shutter_look_through_angle_manual": {
+        "name": "D07 Durchsichtwinkel"
+      },
+      "dawn_shutter_open_seconds_manual": {
+        "name": "D08 Öffnen nach"
+      },
+      "dawn_height_after_dawn_manual": {
+        "name": "D09 Höhe danach"
+      },
+      "dawn_angle_after_dawn_manual": {
+        "name": "D10 Winkel danach"
+      }
+    },
+    "sensor": {
+      "sensor_target_height": {
+        "name": "Höhe"
+      },
+      "sensor_target_angle": {
+        "name": "Winkel"
+      },
+      "sensor_target_angle_degrees": {
+        "name": "Winkel (Grad)"
+      },
+      "sensor_computed_height": {
+        "name": "Höhe (kalkulatorisch)"
+      },
+      "sensor_computed_angle": {
+        "name": "Winkel (kalkulatorisch)"
+      },
+      "sensor_current_state": {
+        "name": "Status (numerisch)"
+      },
+      "sensor_current_state_text": {
+        "name": "Status",
+        "state": {
+          "shadow_full_close_timer_running": "Beschattung: Schliessen-Timer läuft",
+          "shadow_full_closed": "Beschattung: Geschlossen",
+          "shadow_horizontal_neutral_timer_running": "Beschattung: Durchsicht-Timer läuft",
+          "shadow_horizontal_neutral": "Beschattung: Durchsicht",
+          "shadow_neutral_timer_running": "Beschattung: Neutral-Timer läuft",
+          "shadow_neutral": "Beschattung: Neutralposition",
+          "neutral": "Neutralposition",
+          "dawn_neutral": "Dämmerung: Neutralposition",
+          "dawn_neutral_timer_running": "Dämmerung: Neutral-Timer läuft",
+          "dawn_horizontal_neutral": "Dämmerung: Durchsicht",
+          "dawn_horizontal_neutral_timer_running": "Dämmerung: Durchsicht-Timer läuft",
+          "dawn_full_closed": "Dämmerung: Geschlossen",
+          "dawn_full_close_timer_running": "Dämmerung: Schliessen-Timer läuft"
+        }
+      },
+      "sensor_lock_state": {
+        "name": "Sperrstatus"
+      },
+      "sensor_next_shutter_modification": {
+        "name": "Nächste Positionierung"
+      },
+      "sensor_is_in_sun": {
+        "name": "In der Sonne"
+      },
+      "lock_integration_entity": {
+        "name": "> Sperren"
+      },
+      "lock_integration_with_position_entity": {
+        "name": "> Sperren positioniert"
+      },
+      "lock_height_entity": {
+        "name": "> Zwangshöhe"
+      },
+      "lock_angle_entity": {
+        "name": "> Zwangswinkel"
+      },
+      "movement_restriction_height_entity": {
+        "name": "> Höhe"
+      },
+      "movement_restriction_angle_entity": {
+        "name": "> Winkel"
+      },
+      "facade_neutral_pos_height_entity": {
+        "name": "> Neutrale Höhe"
+      },
+      "facade_neutral_pos_angle_entity": {
+        "name": "> Neutraler Winkel"
+      },
+      "shadow_control_enabled_entity": {
+        "name": "B01 Steuerung aktiv"
+      },
+      "shadow_brightness_threshold_winter_entity": {
+        "name": "B02 Winter Helligkeitsschwellwert"
+      },
+      "shadow_brightness_threshold_summer_entity": {
+        "name": "B03 Sommer Helligkeitsschwellwert"
+      },
+      "shadow_brightness_threshold_minimal_entity": {
+        "name": "B04 Minimaler Helligkeitsschwellwert"
+      },
+      "shadow_after_seconds_entity": {
+        "name": "B05 Schliessen nach"
+      },
+      "shadow_shutter_max_height_entity": {
+        "name": "B06 max Höhe"
+      },
+      "shadow_shutter_max_angle_entity": {
+        "name": "B07 max Winkel"
+      },
+      "shadow_shutter_look_through_seconds_entity": {
+        "name": "B08 Durchsicht nach"
+      },
+      "shadow_shutter_look_through_angle_entity": {
+        "name": "B09 Durchsichtwinkel"
+      },
+      "shadow_shutter_open_seconds_entity": {
+        "name": "B10 Öffnen nach"
+      },
+      "shadow_height_after_sun_entity": {
+        "name": "B11 Höhe danach"
+      },
+      "shadow_angle_after_sun_entity": {
+        "name": "B12 Winkel danach"
+      },
+      "dawn_control_enabled_entity": {
+        "name": "D01 Steuerung"
+      },
+      "dawn_brightness_threshold_entity": {
+        "name": "D02 Dämmerungsschwellwert"
+      },
+      "dawn_after_seconds_entity": {
+        "name": "D03 Schliessen nach"
+      },
+      "dawn_shutter_max_height_entity": {
+        "name": "D04 max Höhe"
+      },
+      "dawn_shutter_max_angle_entity": {
+        "name": "D05 max Winkel"
+      },
+      "dawn_shutter_look_through_seconds_entity": {
+        "name": "D06 Durchsicht nach"
+      },
+      "dawn_shutter_look_through_angle_entity": {
+        "name": "D07 Durchsichtwinkel"
+      },
+      "dawn_shutter_open_seconds_entity": {
+        "name": "D08 Öffnen nach"
+      },
+      "dawn_height_after_dawn_entity": {
+        "name": "D09 Höhe danach"
+      },
+      "dawn_angle_after_dawn_entity": {
+        "name": "D10 Winkel danach"
+      },
+      "sunrise_entity": {
+        "name": "Sonnenaufgang"
+      },
+      "sunset_entity": {
+        "name": "Sonnenuntergang"
+      },
+      "sensor_brightness_threshold_active": {
+        "name": "Aktiver Helligkeitsschwellwert"
+      }
+    },
+    "select": {
+      "movement_restriction_height_manual": {
+        "name": "Höhenveränderung einschränken",
+        "state": {
+          "no_restriction": "Keine Einschränkung",
+          "only_close": "Nur schließen",
+          "only_open": "Nur öffnen"
+        }
+      },
+      "movement_restriction_angle_manual": {
+        "name": "Winkelveränderung einschränken",
+        "state": {
+          "no_restriction": "Keine Einschränkung",
+          "only_close": "Nur schließen",
+          "only_open": "Nur öffnen"
+        }
+      }
+    },
+    "binary_sensor": {
+      "auto_lock_active": {
+        "name": "Auto-Sperre aktiv"
+      }
+    },
+    "switch": {
+      "debug_enabled": {
+        "name": "Debug-Modus"
+      },
+      "own_logfile_enabled": {
+        "name": "Eigene Logdatei schreiben"
+      },
+      "shadow_control_enabled_manual": {
+        "name": "B01 Steuerung aktiv"
+      },
+      "dawn_control_enabled_manual": {
+        "name": "D01 Steuerung aktiv"
+      },
+      "lock_integration_manual": {
+        "name": "Sperren"
+      },
+      "lock_integration_with_position_manual": {
+        "name": "Sperren mit Zwangsposition"
+      }
+    },
+    "time": {
+      "dawn_open_not_before_manual": {
+        "name": "D11 Frühestens öffnen um"
+      },
+      "dawn_close_not_later_than_manual": {
+        "name": "D12 Spätestens schließen um"
+      }
+    }
+  },
+  "selector": {
+    "facade_shutter_type_static": {
+      "options": {
+        "mode1": "Raffstoren Einzelrichtung (senkrecht = geschlossen / waagerecht = offen)",
+        "mode2": "Raffstoren Bidirektional (senkrecht innen = geschlossen / waagerecht = offen / senkrecht aussen = geschlossen)",
+        "mode3": "Jalousie / Rollo"
+      }
+    }
+  },
+  "services": {
+    "set_time_constraint": {
+      "name": "Zeitbeschränkung setzen",
+      "description": "Setzt eine Zeitbeschränkung für das Öffnen oder Schließen bei Dämmerung.",
+      "fields": {
+        "constraint_type": {
+          "name": "Beschränkungstyp",
+          "description": "Art der Zeitbeschränkung (open_not_before oder close_not_later_than)"
+        },
+        "time": {
+          "name": "Uhrzeit",
+          "description": "Uhrzeit im Format HH:MM (z.B. 06:00)"
+        }
+      }
+    }
+  }
+}

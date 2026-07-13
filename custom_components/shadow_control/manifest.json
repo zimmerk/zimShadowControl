@@ -1,0 +1,16 @@
+{
+  "domain": "shadow_control",
+  "name": "Shadow Control",
+  "codeowners": [
+    "@starwarsfan"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "sun"
+  ],
+  "documentation": "https://github.com/starwarsfan/shadow-control",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/starwarsfan/shadow-control/issues",
+  "version": "0.13.0"
+}
