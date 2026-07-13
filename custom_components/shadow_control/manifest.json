@@ -1,16 +1,16 @@
 {
   "domain": "shadow_control",
-  "name": "Shadow Control",
+  "name": "zim Shadow Control (Fork)",
   "codeowners": [
-    "@starwarsfan"
+    "@zimmerk"
   ],
   "config_flow": true,
   "dependencies": [
     "sun"
   ],
-  "documentation": "https://github.com/starwarsfan/shadow-control",
+  "documentation": "https://github.com/zimmerk/zimShadowControl",
   "integration_type": "device",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/starwarsfan/shadow-control/issues",
+  "issue_tracker": "https://github.com/zimmerk/zimShadowControl/issues",
   "version": "0.13.0+zimenergy.1"
 }
