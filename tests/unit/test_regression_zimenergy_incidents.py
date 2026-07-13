@@ -44,7 +44,7 @@ import pytest
 from homeassistant.components.cover import CoverEntityFeature
 
 from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import LockState, MovementRestricted, SCDefaults, ShutterType
+from custom_components.shadow_control.const import LockState, MovementRestricted, ShutterType
 
 
 @pytest.mark.asyncio
@@ -93,9 +93,14 @@ class TestOnlyCloseBypassedWhenPreviousValueUnknown:
 
 @pytest.mark.asyncio
 class TestUnavailableConfigEntityProducesSilentlyWrongHeight:
-    """_calculate_shutter_height(): eine (transient) unavailable number.*-Entity fuer
-    shadow_shutter_max_height wird durch den hartkodierten Upstream-Default (100) ersetzt -
-    ununterscheidbar von einem echten, absichtlich konfigurierten Wert."""
+    """_calculate_shutter_height(): reine Berechnungsfunktion, die _shadow_config.shutter_max_height
+    unveraendert durchreicht, wenn light_strip_width==0 ist (Fassaden-Geometrie aller betroffenen
+    Hausinstanzen). Der eigentliche "unavailable-Entity wird durch hartkodierten Upstream-Default
+    (100) ersetzt"-Bugfix sitzt NICHT hier, sondern in der Zuweisungslogik in _update_input_values(),
+    die von keinem Unit-Test aufgerufen wird (ueberall via AsyncMock() weggemockt). Der End-to-End-
+    Regressionstest dafuer lebt deshalb auf Integrationsebene:
+    tests/integration/test_regression_sticky_shutter_max_height.py::test_sticky_default_survives_entity_unavailable
+    Diese Klasse behaelt nur den Sanity-Check der puren Berechnung."""
 
     @pytest.fixture
     def manager(self, mock_manager):
@@ -120,25 +125,6 @@ class TestUnavailableConfigEntityProducesSilentlyWrongHeight:
         result = manager._calculate_shutter_height()
 
         assert result == 0.0
-
-    async def test_unavailable_entity_silently_substitutes_upstream_default(self, manager):
-        """BUG: ist die number.*-Entity fuer shutter_max_height im Berechnungsmoment
-        unavailable (z.B. waehrend eines Config-Entry-Reloads, bevor die number-Plattform
-        fertig restauriert hat), liefert _get_state_value() den hartkodierten Upstream-
-        Default SCDefaults.SHADOW_SHUTTER_MAX_HEIGHT_VALUE (=100) zurueck - komplett
-        unabhaengig vom real konfigurierten Wert (hier: 0). Die Berechnung selbst kann
-        diesen Unterschied nicht erkennen; das Ergebnis ist in diesem Haus um 100
-        Prozentpunkte falsch."""
-        manager._shadow_config.shutter_max_height = SCDefaults.SHADOW_SHUTTER_MAX_HEIGHT_VALUE.value
-
-        result = manager._calculate_shutter_height()
-
-        assert result == 0.0, (
-            f"Bei unavailable shutter_max_height-Entity liefert die Berechnung "
-            f"{SCDefaults.SHADOW_SHUTTER_MAX_HEIGHT_VALUE.value} statt des real "
-            f"konfigurierten Werts 0 - ein stiller, hartkodierter Fallback ohne jede "
-            f"Kennzeichnung, dass die Quelle unavailable war."
-        )
 
 
 @pytest.mark.asyncio

@@ -1789,11 +1789,18 @@ class ShadowControlManager:
         self._shadow_config.after_seconds = self._get_entity_state_value(SCShadowInput.AFTER_SECONDS_ENTITY.value, shadow_after_seconds_value, float)
 
         # Shadow Shutter Max Height
+        # Fallback is the manager's own last-known value, not the hardcoded
+        # SCDefaults constant - the field already starts out equal to that
+        # constant (see ShadowConfig.__init__), so this is a no-op on a truly
+        # fresh manager, but correctly "stickies" on the real configured value
+        # once one has been read at least once, instead of silently reverting
+        # to the upstream default whenever the entity is transiently
+        # unavailable (e.g. during a config-entry reload race).
         shadow_shutter_max_height_manual = self.get_internal_entity_id(SCInternal.SHADOW_SHUTTER_MAX_HEIGHT_MANUAL)
         shadow_shutter_max_height_value = (
-            self._get_internal_entity_state_value(shadow_shutter_max_height_manual, SCDefaults.SHADOW_SHUTTER_MAX_HEIGHT_VALUE.value, float)
+            self._get_internal_entity_state_value(shadow_shutter_max_height_manual, self._shadow_config.shutter_max_height, float)
             if shadow_shutter_max_height_manual
-            else SCDefaults.SHADOW_SHUTTER_MAX_HEIGHT_VALUE.value
+            else self._shadow_config.shutter_max_height
         )
         self._shadow_config.shutter_max_height = self._get_entity_state_value(
             SCShadowInput.SHUTTER_MAX_HEIGHT_ENTITY.value, shadow_shutter_max_height_value, float

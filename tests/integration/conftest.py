@@ -699,6 +699,39 @@ def assert_not_equal(actual, expected, context: str = "Value") -> None:
     _LOGGER.info("✓ %s is NOT %s (%s), actual: %s", context, expected_name, expected_val, actual_val)
 
 
+def get_internal_entity_id_for_test(hass: HomeAssistant, instance_name: str, internal_enum: SCInternal) -> str:
+    """Look up an internal SC entity's entity_id via registry, without changing its value.
+
+    Same lookup logic used by set_internal_entity(), split out for tests that need to
+    manipulate entity state directly (e.g. hass.states.async_set to simulate "unavailable")
+    rather than going through a service call.
+
+    Args:
+        hass: Home Assistant instance
+        instance_name: SC instance name
+        internal_enum: SCInternal enum value
+
+    Raises:
+        ValueError: If entity cannot be found in registry
+    """
+    domain = internal_enum.domain
+    registry = er.async_get(hass)
+
+    for entity in registry.entities.values():
+        # Prüfe: richtige Platform, Domain und unique_id enthält den enum value
+        if (
+            entity.platform == "shadow_control"
+            and entity.domain == domain
+            and internal_enum.value in entity.unique_id
+            and instance_name.lower() in entity.entity_id.lower()
+        ):
+            _LOGGER.debug("Found entity %s for %s", entity.entity_id, internal_enum.name)
+            return entity.entity_id
+
+    msg = f"Could not find entity for {internal_enum.name} (domain: {domain}, instance: {instance_name}) in registry"
+    raise ValueError(msg)
+
+
 async def set_internal_entity(hass: HomeAssistant, instance_name: str, internal_enum: SCInternal, value: str | float | bool | None = None) -> None:
     """Set internal SC entity value using registry lookup.
 
@@ -713,29 +746,8 @@ async def set_internal_entity(hass: HomeAssistant, instance_name: str, internal_
     Raises:
         ValueError: If entity cannot be found in registry
     """
-
-    # Hole Domain vom Enum
     domain = internal_enum.domain
-
-    # Suche Entity in der Registry
-    registry = er.async_get(hass)
-
-    entity_id = None
-    for entity in registry.entities.values():
-        # Prüfe: richtige Platform, Domain und unique_id enthält den enum value
-        if (
-            entity.platform == "shadow_control"
-            and entity.domain == domain
-            and internal_enum.value in entity.unique_id
-            and instance_name.lower() in entity.entity_id.lower()
-        ):
-            entity_id = entity.entity_id
-            _LOGGER.debug("Found entity %s for %s", entity_id, internal_enum.name)
-            break
-
-    if not entity_id:
-        msg = f"Could not find entity for {internal_enum.name} (domain: {domain}, instance: {instance_name}) in registry"
-        raise ValueError(msg)
+    entity_id = get_internal_entity_id_for_test(hass, instance_name, internal_enum)
 
     if domain == "button":
         # Buttons werden gedrückt, kein value nötig
