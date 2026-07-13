@@ -4,6 +4,10 @@ import logging
 
 import pytest
 
+# Muss im top-level conftest stehen (neuere pytest-Versionen lehnen
+# pytest_plugins in verschachtelten conftest.py-Dateien ab).
+pytest_plugins = "pytest_homeassistant_custom_component"
+
 # Konfiguriere Logging beim Import
 logging.getLogger("homeassistant").setLevel(logging.WARNING)
 logging.getLogger("homeassistant.core").setLevel(logging.ERROR)
