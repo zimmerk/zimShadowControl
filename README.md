@@ -19,9 +19,25 @@ Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 > **⚠️ This is a customized private fork.** This repository is a fork of
 > [starwarsfan/shadow-control](https://github.com/starwarsfan/shadow-control),
 > maintained for the [zim-ha-config](https://github.com/zimmerk/zim-ha-config)
-> setup and containing bugfixes specific to that environment (see the commit
-> history for details). For the original, actively maintained upstream
-> project, please use the repository linked above.
+> setup and containing bugfixes specific to that environment. For the
+> original, actively maintained upstream project, please use the repository
+> linked above.
+>
+> **Fixes in this fork (not yet in upstream):**
+> - `_should_output_be_updated()` returned the newly calculated value
+>   unconditionally whenever `previous_value` was `None` (e.g. right after a
+>   config-entry reload), completely bypassing the `only_close`/`only_open`
+>   movement restriction. Fixed to fall back to the most restrictive bound
+>   (fully closed / fully open) instead of passing the new value through
+>   unchecked.
+> - `_update_input_values()` replaced `shadow_shutter_max_height` with the
+>   hardcoded upstream default (100) whenever the corresponding `number.*`
+>   entity was transiently unavailable, instead of keeping the last known
+>   real value. Fixed to stick to the manager's own last-read value.
+>
+> Both were confirmed as root causes of unexpected shutter-opening incidents
+> in the zim-ha-config setup. See the commit history for full details and
+> regression tests.
 
 ## Table of content
 
