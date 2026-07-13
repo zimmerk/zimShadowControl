@@ -4681,9 +4681,25 @@ class ShadowControlManager:
         # - config_value is 'NO_RESTRICTION' or everything else
         # All other cases will return the previous value.
         if previous_value is None:
-            # self.logger.debug(
-            #     "_should_output_be_updated: previous_value is None. Returning new value (%s)", new_value)
-            return new_value
+            if config_value == MovementRestricted.NO_RESTRICTION:
+                return new_value
+            # We don't yet know the real current position (e.g. right after a reload
+            # or reactivation, before the manager has tracked a value through its own
+            # initial-run positioning - _force_immediate_positioning() can reach this
+            # point without ever having gone through that safe initialization). A
+            # movement restriction can't be evaluated without a reference point, so
+            # assume the most restrictive boundary for the configured direction
+            # instead of blindly permitting new_value - better to (re-)send the safe
+            # extreme than to risk violating the restriction on the very first output.
+            safe_boundary = 100.0 if config_value == MovementRestricted.ONLY_CLOSE else 0.0
+            self.logger.debug(
+                "_should_output_be_updated: previous_value is None and %s is configured. "
+                "Refusing new_value (%s), returning safe boundary (%s) instead.",
+                config_value.name,
+                new_value,
+                safe_boundary,
+            )
+            return safe_boundary
 
         # Check if the value was changed at all
         # by using a small tolerance to prevent redundant movements.
