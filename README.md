@@ -16,6 +16,13 @@
 
 Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 
+> **⚠️ This is a customized private fork.** This repository is a fork of
+> [starwarsfan/shadow-control](https://github.com/starwarsfan/shadow-control),
+> maintained for the [zim-ha-config](https://github.com/zimmerk/zim-ha-config)
+> setup and containing bugfixes specific to that environment (see the commit
+> history for details). For the original, actively maintained upstream
+> project, please use the repository linked above.
+
 ## Table of content
 
 * [Introduction](#introduction)
