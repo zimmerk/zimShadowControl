@@ -34,10 +34,18 @@ Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 >   hardcoded upstream default (100) whenever the corresponding `number.*`
 >   entity was transiently unavailable, instead of keeping the last known
 >   real value. Fixed to stick to the manager's own last-read value.
+> - `_position_shutter()`'s initial-run handling silently recorded the
+>   freshly *calculated* target as `previous_shutter_height`/`_angle` instead
+>   of leaving it unset - on every reload this poisoned the reference value
+>   *before* the first real positioning call, so the `previous_value is None`
+>   safe-boundary fix above never actually triggered for facades that
+>   recalculate on restart (e.g. those currently in the sun). Fixed to seed
+>   both from the cover's real physical position on the first call, and to
+>   leave them untouched on any further call while still in the initial run.
 >
-> Both were confirmed as root causes of unexpected shutter-opening incidents
-> in the zim-ha-config setup. See the commit history for full details and
-> regression tests.
+> All three were confirmed as root causes of unexpected shutter-opening
+> incidents in the zim-ha-config setup. See the commit history for full
+> details and regression tests.
 
 ## Table of content
 

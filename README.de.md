@@ -33,10 +33,19 @@ Go to the [English version](/README.md) version of the documentation.
 >   hartkodierten Upstream-Default (100), sobald die zugehörige `number.*`-
 >   Entity transient unavailable war, statt den zuletzt bekannten echten Wert
 >   zu behalten. Fix: bleibt jetzt beim zuletzt gelesenen Wert des Managers.
+> - `_position_shutter()`s Initial-Run-Logik setzte still den frisch
+>   *berechneten* Zielwert als `previous_shutter_height`/`_angle`, statt sie
+>   unbestimmt zu lassen — bei jedem Reload vergiftete das den Referenzwert,
+>   BEVOR die erste echte Positionierung stattfand, wodurch der obige
+>   `previous_value=None`-Fix bei Fassaden, die sich beim Neustart neu
+>   berechnen (z.B. weil sie gerade in der Sonne stehen), nie griff. Fix:
+>   seedet beide Werte beim ersten Aufruf aus der realen physischen
+>   Cover-Position, laesst sie bei weiteren Aufrufen waehrend desselben
+>   Initial-Runs unangetastet.
 >
-> Beide Fehler wurden als Ursache für unerwartetes Hochfahren von Behängen
-> im zim-ha-config-Setup bestätigt. Details und Regressionstests siehe
-> Commit-Historie.
+> Alle drei Fehler wurden als Ursache für unerwartetes Hochfahren von
+> Behängen im zim-ha-config-Setup bestätigt. Details und Regressionstests
+> siehe Commit-Historie.
 
 ## Inhaltsverzeichnis
 

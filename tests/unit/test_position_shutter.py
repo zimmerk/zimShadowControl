@@ -116,7 +116,7 @@ class TestPositionShutter:
     # ========================================================================
 
     async def test_initial_run_sets_values_no_positioning(self, manager):
-        """Test that initial run sets values but doesn't position."""
+        """Test that initial run sets calculated values but doesn't position."""
         manager._is_initial_run = True
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
@@ -125,15 +125,70 @@ class TestPositionShutter:
         assert manager.calculated_shutter_height == 80.0
         assert manager.calculated_shutter_angle == 45.0
 
-        # Should set previous values
-        assert manager._previous_shutter_height == 80.0
-        assert manager._previous_shutter_angle == 45.0
+        # Regression (Fassade faehrt beim Neustart hoch, s. __init__.py Phase 2 Kommentar):
+        # previous_shutter_height/angle are already known (fixture default 50.0/40.0, not
+        # None) here, so they must stay UNTOUCHED - overwriting them with the freshly
+        # *calculated* target during initial run is exactly the bug that let
+        # _should_output_be_updated()'s previous_value=None safe-boundary protection be
+        # bypassed by a later, real positioning call. See
+        # test_initial_run_seeds_previous_values_from_physical_position_when_none below for
+        # the None-seeding path this fix actually introduces.
+        assert manager._previous_shutter_height == 50.0
+        assert manager._previous_shutter_angle == 40.0
 
         # Should NOT call positioning services
         manager.hass.services.async_call.assert_not_called()
 
         # Should update attributes
         manager._update_extra_state_attributes.assert_called_once()
+
+    async def test_initial_run_seeds_previous_values_from_physical_position_when_none(self, manager):
+        """Regression test: first-ever initial-run call must seed previous height/angle from
+        the REAL physical cover position, not from the freshly calculated target.
+
+        Bug (Fassade faehrt beim Neustart hoch, Live-Vorfaelle 2026-07-10/12/13/14/16): on a
+        fresh Manager (previous_value still None, as after any reload/restart), the initial
+        run used to silently record the *calculated* target (e.g. 0.0 for a neutral facade)
+        as previous_shutter_height/angle - bypassing _should_output_be_updated()'s
+        previous_value=None safe-boundary check entirely for the next, real positioning call.
+        """
+        manager._previous_shutter_height = None
+        manager._previous_shutter_angle = None
+        manager._is_initial_run = True
+        manager._get_current_cover_position = AsyncMock(return_value=(100.0, 50.0))
+
+        await manager._position_shutter(0.0, 0.0, stop_timer=False)
+
+        # Calculated (target) values are still tracked as usual...
+        assert manager.calculated_shutter_height == 0.0
+        assert manager.calculated_shutter_angle == 0.0
+
+        # ...but previous values come from the REAL physical position, not the target.
+        assert manager._previous_shutter_height == 100.0
+        assert manager._previous_shutter_angle == 50.0
+
+        manager.hass.services.async_call.assert_not_called()
+
+    async def test_initial_run_does_not_reseed_previous_values_on_subsequent_calls(self, manager):
+        """A second initial-run call (previous values already seeded) must not overwrite them
+        again with a new calculated target - the physical reference must survive the whole
+        initial-run window until a real (non-initial-run) positioning call happens."""
+        manager._previous_shutter_height = None
+        manager._previous_shutter_angle = None
+        manager._is_initial_run = True
+        manager._get_current_cover_position = AsyncMock(return_value=(100.0, 50.0))
+
+        await manager._position_shutter(0.0, 0.0, stop_timer=False)
+        assert manager._previous_shutter_height == 100.0
+        assert manager._previous_shutter_angle == 50.0
+
+        # Second call while still in initial run, with a DIFFERENT calculated target.
+        await manager._position_shutter(30.0, 20.0, stop_timer=False)
+
+        # Previous values must remain pinned to the physical reference from the first call.
+        assert manager._previous_shutter_height == 100.0
+        assert manager._previous_shutter_angle == 50.0
+        manager._get_current_cover_position.assert_called_once()
 
     # ========================================================================
     # PHASE 2.5: STARTUP PROTECTION

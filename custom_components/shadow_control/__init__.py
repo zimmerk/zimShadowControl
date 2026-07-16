@@ -2608,10 +2608,32 @@ class ShadowControlManager:
         # --- Phase 2: Handle initial run special logic ---
         if self._is_initial_run:
             self.logger.info("Initial run of integration. Setting internal states. No physical output update.")
-            # Only set internal previous values for the *next* run's send-by-change logic.
-            # These are now set to the *initial target* values.
-            self._previous_shutter_height = shutter_height_percent
-            self._previous_shutter_angle = shutter_angle_percent
+            # Bug (Fassade faehrt beim Neustart hoch, 2026-07-10/12/13/14/16):
+            # _is_initial_run stays True across possibly several calls while HA
+            # starts up (its reset at the end of this branch is intentionally
+            # disabled, see below) and, until now, every such call blindly
+            # overwrote _previous_shutter_height/_previous_shutter_angle with
+            # the freshly *calculated* target (e.g. 0 for a neutral facade).
+            # That silently turned previous_value from None into a concrete
+            # (and often wrong) value *before* the first real positioning call
+            # ever reaches _should_output_be_updated() - defeating its
+            # previous_value=None safe-boundary protection for only_close/
+            # only_open (s. dort), which exists specifically to guard this
+            # reload scenario. Seed instead from the cover's REAL physical
+            # position on the very first call (previous_value still None) so
+            # the reference point matches reality, not a synthetic target;
+            # leave it untouched on any further initial-run call.
+            if self._previous_shutter_height is None or self._previous_shutter_angle is None:
+                physical_height, physical_angle = await self._get_current_cover_position()
+                self._previous_shutter_height = physical_height
+                self._previous_shutter_angle = physical_angle
+                self.logger.debug(
+                    "Initial run: seeded previous height/angle from physical cover state (%.1f%% / %.1f%%) instead of calculated target (%.1f%% / %.1f%%)",
+                    physical_height,
+                    physical_angle,
+                    shutter_height_percent,
+                    shutter_angle_percent,
+                )
             # self._is_initial_run = False  # Initial run completed
 
             self._update_extra_state_attributes()
