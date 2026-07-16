@@ -42,8 +42,22 @@ Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 >   recalculate on restart (e.g. those currently in the sun). Fixed to seed
 >   both from the cover's real physical position on the first call, and to
 >   leave them untouched on any further call while still in the initial run.
+> - `async_unlock_integration()` handed a bare `None` (via
+>   `_height_during_lock_state`) to the state-change handlers of the two lock
+>   switches it turns off, which feed it straight into
+>   `previous_shutter_height`/`_angle`. Safe in isolation (`previous_value is
+>   None` hits the safe-boundary fix above) - but once one of the two
+>   handlers had already forwarded the `None` once, a second, interleaved
+>   handler no longer saw `None`, so the protection never fired for it.
+>   Fixed to read the cover's real physical position up front and anchor
+>   `previous_shutter_height`/`_angle`, `_last_calculated_height`/`_angle`
+>   and (when clearing an auto-lock) `_height_during_lock_state`/
+>   `_angle_during_lock_state` to it before either switch is touched: every
+>   downstream consumer now works with a value that matches reality,
+>   regardless of interleaving order. Also skips turning off a lock switch
+>   that's already off, since that alone could still re-trigger its handler.
 >
-> All three were confirmed as root causes of unexpected shutter-opening
+> All four were confirmed as root causes of unexpected shutter-opening
 > incidents in the zim-ha-config setup. See the commit history for full
 > details and regression tests.
 

@@ -42,8 +42,23 @@ Go to the [English version](/README.md) version of the documentation.
 >   seedet beide Werte beim ersten Aufruf aus der realen physischen
 >   Cover-Position, laesst sie bei weiteren Aufrufen waehrend desselben
 >   Initial-Runs unangetastet.
+> - `async_unlock_integration()` reichte ein blosses `None` (ueber
+>   `_height_during_lock_state`) an die State-Change-Handler der beiden
+>   Lock-Switches weiter, die es direkt in `previous_shutter_height`/`_angle`
+>   uebernehmen. Fuer sich genommen sicher (`previous_value is None` greift
+>   in den obigen Safe-Boundary-Fix) — aber sobald EIN Handler das `None`
+>   bereits weitergereicht hatte, sah ein zweiter, interleavter Handler kein
+>   `None` mehr, der Schutz griff fuer ihn also nie. Fix: liest die reale
+>   physische Cover-Position vorab und verankert `previous_shutter_height`/
+>   `_angle`, `_last_calculated_height`/`_angle` sowie (beim Loeschen einer
+>   Auto-Sperre) `_height_during_lock_state`/`_angle_during_lock_state`
+>   daran, bevor einer der beiden Switches angefasst wird — jeder
+>   nachgelagerte Verbraucher arbeitet damit unabhaengig von der
+>   Interleaving-Reihenfolge mit einem Wert, der der Realitaet entspricht.
+>   Schaltet ausserdem einen bereits ausgeschalteten Lock-Switch nicht mehr
+>   erneut aus, da allein das schon dessen Handler erneut ausloesen konnte.
 >
-> Alle drei Fehler wurden als Ursache für unerwartetes Hochfahren von
+> Alle vier Fehler wurden als Ursache für unerwartetes Hochfahren von
 > Behängen im zim-ha-config-Setup bestätigt. Details und Regressionstests
 > siehe Commit-Historie.
 

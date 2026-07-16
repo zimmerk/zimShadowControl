@@ -1402,16 +1402,44 @@ class ShadowControlManager:
         """Unlock integration - clear all locks including auto-lock."""
         self.logger.info("Unlocking integration - clearing all locks")
 
+        # Bug (Fassade faehrt beim Entsperren hoch, 2026-07-16, confirmed live for
+        # a restart-restored auto-lock never freshly re-triggered in the running
+        # process): turning off LOCK_INTEGRATION_MANUAL/_WITH_POSITION_MANUAL below
+        # fires their own state-change handlers (see "Simple lock was disabled" /
+        # "Lock with position was disabled" further down in this file), which feed
+        # _height_during_lock_state/_angle_during_lock_state straight into
+        # previous_shutter_height/_angle - and via the lock-with-position branch,
+        # can also force an immediate resend. Until now this was set to None right
+        # here whenever _locked_by_auto_lock was true, hoping the None would be
+        # caught by _should_output_be_updated()'s previous_value=None safe-boundary
+        # protection - but that protection only fires while previous_value IS
+        # None; once one of the two switch-off handlers has already forwarded it
+        # (still as None) into previous_shutter_height, a second, interleaved
+        # event's handler no longer sees None and the restriction is skipped.
+        # Reading the REAL physical position now and using that instead of None
+        # closes the gap regardless of interleaving order: every consumer below
+        # ends up with a value that matches reality instead of an absent one.
+        physical_height, physical_angle = await self._get_current_cover_position()
+        self._previous_shutter_height = physical_height
+        self._previous_shutter_angle = physical_angle
+        self._last_calculated_height = physical_height
+        self._last_calculated_angle = physical_angle
+
         # Clear auto-lock flag
         if self._locked_by_auto_lock:
             self.logger.info("Clearing auto-lock flag")
             self._locked_by_auto_lock = False
-            self._height_during_lock_state = None
-            self._angle_during_lock_state = None
+            self._height_during_lock_state = physical_height
+            self._angle_during_lock_state = physical_angle
 
-        # Turn off both lock switches
+        # Turn off both lock switches - but only if actually "on". Calling
+        # turn_off on an already-off switch can still cause its state-change
+        # handler to re-run (fresh context/timestamp even though the state value
+        # doesn't change) - harmless now that the values above are anchored to
+        # reality, but skipping the redundant call avoids the extra, pointless
+        # recalculation cycle entirely.
         lock_entity = self.get_internal_entity_id(SCInternal.LOCK_INTEGRATION_MANUAL)
-        if lock_entity:
+        if lock_entity and self.hass.states.is_state(lock_entity, "on"):
             try:
                 await self.hass.services.async_call("switch", "turn_off", {"entity_id": lock_entity}, blocking=False)
                 self.logger.debug("Turned off lock switch: %s", lock_entity)
@@ -1419,7 +1447,7 @@ class ShadowControlManager:
                 self.logger.exception("Failed to turn off lock switch")
 
         lock_with_pos_entity = self.get_internal_entity_id(SCInternal.LOCK_INTEGRATION_WITH_POSITION_MANUAL)
-        if lock_with_pos_entity:
+        if lock_with_pos_entity and self.hass.states.is_state(lock_with_pos_entity, "on"):
             try:
                 await self.hass.services.async_call("switch", "turn_off", {"entity_id": lock_with_pos_entity}, blocking=False)
                 self.logger.debug("Turned off lock-with-position switch: %s", lock_with_pos_entity)
