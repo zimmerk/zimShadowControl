@@ -1458,6 +1458,23 @@ class ShadowControlManager:
         self._last_unlock_time = dt_util.utcnow()
         self.logger.debug("Set unlock grace period")
 
+        # Recompute current_lock_state directly instead of relying on it being
+        # refreshed as a side effect of the switch-off calls above. Previously
+        # both switches were always toggled, and their state-change handlers
+        # happened to trigger a full recalculation (which refreshes
+        # current_lock_state via _calculate_lock_state() inside
+        # _update_input_values()) as a side effect - now that an already-off
+        # switch is skipped, that side effect no longer reliably happens, and
+        # _position_shutter()'s Phase 3 "is_locked" gate (which reads
+        # current_lock_state, not _locked_by_auto_lock directly) would keep
+        # blocking physical output - and the lock sensors would keep showing
+        # "locked" - until some unrelated event happened to trigger a
+        # recalculation. Updating it here, plus notifying entities, keeps
+        # unlocking effective and visible immediately regardless of whether
+        # either switch needed a real toggle.
+        self.current_lock_state = self._calculate_lock_state()
+        async_dispatcher_send(self.hass, f"{DOMAIN}_update_{self.name.lower().replace(' ', '_')}")
+
         # Trigger immediate positioning
         # await self.async_calculate_and_apply_cover_position(None)
 

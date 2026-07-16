@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import SCInternal
+from custom_components.shadow_control.const import LockState, SCInternal
 
 
 class TestUnlockIntegration:
@@ -44,9 +44,12 @@ class TestUnlockIntegration:
         instance._last_calculated_height = None
         instance._last_calculated_angle = None
         instance._last_unlock_time = None
+        instance.current_lock_state = LockState.LOCKED_BY_EXTERNAL_MODIFICATION
+        instance.name = "SC Test Instance"
 
         # Cover physically closed (SC scale: 100 = fully closed) when unlocked.
         instance._get_current_cover_position = AsyncMock(return_value=(100.0, 100.0))
+        instance._calculate_lock_state = MagicMock(return_value=LockState.UNLOCKED)
 
         instance.get_internal_entity_id = MagicMock(
             side_effect=lambda key: {
@@ -125,6 +128,22 @@ class TestUnlockIntegration:
 
         assert manager._previous_shutter_height == 0.0
         assert manager._previous_shutter_angle == 0.0
+
+    async def test_refreshes_lock_state_even_when_no_switch_needed_toggling(self, manager):
+        """Regression (found while live-verifying the fix above, 2026-07-16):
+        current_lock_state used to only get refreshed as a side effect of a
+        switch-off handler's recalculation cycle. Once already-off switches are
+        skipped (see test_skips_turn_off_for_already_off_switches), that side
+        effect no longer happens - without recomputing it directly here,
+        _position_shutter()'s "is_locked" gate (which reads current_lock_state,
+        not _locked_by_auto_lock) would keep blocking output, and lock sensors
+        would keep showing "locked", until some unrelated event happened to
+        trigger a recalculation. Fixture default: both switches report off,
+        matching the live wz_nord scenario."""
+        await manager.async_unlock_integration()
+
+        manager._calculate_lock_state.assert_called_once()
+        assert manager.current_lock_state == LockState.UNLOCKED
 
 
 if __name__ == "__main__":
