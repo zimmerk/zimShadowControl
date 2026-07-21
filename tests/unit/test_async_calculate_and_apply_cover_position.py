@@ -6,12 +6,14 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Event
+from homeassistant.util import dt as dt_util
 
 from custom_components.shadow_control import ShadowControlManager
 from custom_components.shadow_control.const import (
     SCDawnInput,
     SCDynamicInput,
     SCShadowInput,
+    ShutterType,
 )
 
 
@@ -53,6 +55,16 @@ class TestAsyncCalculateAndApplyCoverPosition:
         instance._calculate_shutter_angle = MagicMock(return_value=45.0)
 
         instance._last_unlock_time = None
+
+        # Shadow-control enabled/disabled transition tracking (see
+        # async_calculate_and_apply_cover_position). Default to "already enabled, no
+        # change" so existing tests are unaffected unless a test explicitly changes it.
+        instance._shadow_config = MagicMock()
+        instance._shadow_config.enabled = True
+        instance._previous_shadow_control_enabled = True
+        instance._last_positioning_time = None
+        instance._last_reported_height = None
+        instance._last_reported_angle = None
 
         # Grace period attributes
         instance._ha_start_time = datetime.now(tz=UTC) - timedelta(seconds=35)  # Beyond grace period by default
@@ -330,3 +342,71 @@ class TestAsyncCalculateAndApplyCoverPosition:
         manager._dawn_handling_was_disabled.assert_called_once()
         manager._force_immediate_positioning.assert_not_called()
         manager._process_shutter_state.assert_not_called()
+
+    # ========================================================================
+    # REGRESSION: switch.py ShadowControlSwitch toggle (event=None) must not
+    # leave stale positioning-verification state that triggers a false-positive
+    # auto-lock. See memory/shadow_control_jalousien.md / production incident:
+    # a periodic "restart all instances" automation toggles
+    # switch.shadow_control_<x>_b01_steuerung_aktiv off then on every 30 minutes.
+    # ========================================================================
+
+    async def test_switch_toggle_off_on_does_not_false_positive_auto_lock(self, manager):
+        """ShadowControlSwitch._notify_integration() (switch.py) calls
+        async_calculate_and_apply_cover_position(None) on every toggle - i.e. WITHOUT a
+        real Event object - exactly like the periodic production automation that flips the
+        "Steuerung aktiv" switch off then on. Before the fix, a stale target height/angle
+        from an earlier positioning cycle (_last_calculated_height/_last_calculated_angle/
+        _last_positioning_time) survived both toggle calls completely untouched, because the
+        `if event:` disable/enable detection inside async_calculate_and_apply_cover_position
+        only recognises a real state_changed Event for the *external* CONTROL_ENABLED_ENTITY -
+        never event=None, and never the switch's own internal entity. _check_positioning_completed()
+        (called unconditionally on every invocation) then compared the shutter's last-reported
+        position against that stale target and incorrectly triggered auto-lock ("manual
+        intervention detected"). The fix detects the enabled-state transition directly via
+        _shadow_config.enabled (populated by _update_input_values() regardless of the event
+        shape) and resets the bookkeeping before _check_positioning_completed() runs."""
+        # Bind the real positioning-verification methods (the base fixture leaves them as
+        # auto-mocks, which would trivially "pass" without exercising the actual bug).
+        manager._check_positioning_completed = ShadowControlManager._check_positioning_completed.__get__(manager)
+        manager._is_positioning_in_progress = ShadowControlManager._is_positioning_in_progress.__get__(manager)
+        manager._activate_auto_lock = AsyncMock()
+
+        manager._facade_config.shutter_type = ShutterType.MODE1
+        manager._facade_config.modification_tolerance_height = 2.0
+        manager._facade_config.modification_tolerance_angle = 2.0
+        manager._facade_config.max_movement_duration = 30.0
+
+        # Pending state from an earlier positioning cycle: timer already expired, and the
+        # shutter's last-reported position differs from the stale target well beyond tolerance.
+        manager._last_positioning_time = dt_util.utcnow() - timedelta(seconds=40)
+        manager._last_calculated_height = 80.0
+        manager._last_calculated_angle = 45.0
+        manager._last_reported_height = 50.0
+        manager._last_reported_angle = 30.0
+
+        # --- Switch toggled OFF (production: periodic restart automation) ---
+        manager._shadow_config.enabled = False
+        manager._previous_shadow_control_enabled = True  # was enabled before this call
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        manager._activate_auto_lock.assert_not_called()
+        assert manager._last_positioning_time is None, "Stale positioning timer must be cleared on the disable transition"
+        assert manager._last_reported_height is None
+
+        # A new stale mismatch accrues (e.g. a leftover positioning cycle settles physically
+        # at a different spot than last calculated) before the switch flips back on.
+        manager._last_positioning_time = dt_util.utcnow() - timedelta(seconds=40)
+        manager._last_calculated_height = 20.0
+        manager._last_calculated_angle = 10.0
+        manager._last_reported_height = 90.0
+        manager._last_reported_angle = 60.0
+
+        # --- Switch toggled back ON ---
+        manager._shadow_config.enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        manager._activate_auto_lock.assert_not_called()
+        assert manager._last_positioning_time is None, "Stale positioning timer must be cleared on the enable transition"

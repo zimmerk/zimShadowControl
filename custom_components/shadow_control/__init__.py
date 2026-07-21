@@ -899,6 +899,12 @@ class ShadowControlManager:
         self._last_calculated_height: float = 0.0
         self._last_calculated_angle: float = 0.0
         self._last_unlock_time: datetime | None = None
+        # Tracks _shadow_config.enabled across calls so async_calculate_and_apply_cover_position
+        # can detect enable/disable transitions even when called with event=None (e.g. by
+        # ShadowControlSwitch._notify_integration()), which the `if event:` state_changed
+        # detection below can never see. None means "not yet observed" (first call), so the
+        # very first evaluation never spuriously triggers a reset.
+        self._previous_shadow_control_enabled: bool | None = None
         self._last_reported_height: float | None = None
         self._last_reported_angle: float | None = None
         self._is_external_modification_detected: bool = False
@@ -2066,6 +2072,30 @@ class ShadowControlManager:
         self.logger.debug("Calculating and applying cover position, triggered by event: %s", event.data if event else "None")
 
         await self._update_input_values()
+
+        # Detect shadow-control enabled/disabled transitions independently of the `if event:`
+        # block below. ShadowControlSwitch._notify_integration() (switch.py) calls this method
+        # with event=None on every toggle of the "Steuerung aktiv" switch, so the event-based
+        # detection a few lines down - which only recognises a state_changed event on the
+        # *external* SCShadowInput.CONTROL_ENABLED_ENTITY - never fires for that switch. Without
+        # this check, a target height/angle computed in a previous on/off cycle
+        # (_last_calculated_height/_last_calculated_angle) survives untouched together with a
+        # stale _last_positioning_time. When a periodic automation toggles the switch off/on,
+        # _check_positioning_completed() below would then compare the shutter's actual position
+        # against that stale target and incorrectly conclude "manual intervention detected",
+        # triggering a false-positive auto-lock. Resetting the positioning-verification
+        # bookkeeping whenever enabled actually flips makes the next _check_positioning_completed()
+        # call a no-op instead (nothing to compare against).
+        if self._previous_shadow_control_enabled is not None and self._shadow_config.enabled != self._previous_shadow_control_enabled:
+            self.logger.debug(
+                "Shadow control enabled state changed (%s -> %s) - resetting stale positioning-verification bookkeeping",
+                self._previous_shadow_control_enabled,
+                self._shadow_config.enabled,
+            )
+            self._last_positioning_time = None
+            self._last_reported_height = None
+            self._last_reported_angle = None
+        self._previous_shadow_control_enabled = self._shadow_config.enabled
 
         # Also check here (not only in the cover state-change listener) so that a manual
         # movement stored during the positioning timer window (FALL A) is detected even
