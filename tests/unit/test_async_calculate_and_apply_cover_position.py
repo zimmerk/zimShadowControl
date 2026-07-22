@@ -62,9 +62,16 @@ class TestAsyncCalculateAndApplyCoverPosition:
         instance._shadow_config = MagicMock()
         instance._shadow_config.enabled = True
         instance._previous_shadow_control_enabled = True
+        # Dawn mirrors the shadow-control tracking above (its own switch/config, same
+        # bypass problem). Same "already enabled, no change" default.
+        instance._dawn_config = MagicMock()
+        instance._dawn_config.enabled = True
+        instance._previous_dawn_control_enabled = True
         instance._last_positioning_time = None
         instance._last_reported_height = None
         instance._last_reported_angle = None
+        instance._last_calculated_height = 0.0
+        instance._last_calculated_angle = 0.0
 
         # Grace period attributes
         instance._ha_start_time = datetime.now(tz=UTC) - timedelta(seconds=35)  # Beyond grace period by default
@@ -410,3 +417,84 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         manager._activate_auto_lock.assert_not_called()
         assert manager._last_positioning_time is None, "Stale positioning timer must be cleared on the enable transition"
+
+    async def test_dawn_switch_toggle_off_on_does_not_false_positive_auto_lock(self, manager):
+        """Mirror of test_switch_toggle_off_on_does_not_false_positive_auto_lock, but for the
+        fully parallel Dawn mechanism: switch.shadow_control_<x>_d01_steuerung_aktiv is backed
+        by its own ShadowControlSwitch instance, and its _notify_integration() also calls
+        async_calculate_and_apply_cover_position(None) on every toggle - same bypass problem,
+        tracked independently via _dawn_config.enabled / _previous_dawn_control_enabled."""
+        manager._check_positioning_completed = ShadowControlManager._check_positioning_completed.__get__(manager)
+        manager._is_positioning_in_progress = ShadowControlManager._is_positioning_in_progress.__get__(manager)
+        manager._activate_auto_lock = AsyncMock()
+
+        manager._facade_config.shutter_type = ShutterType.MODE1
+        manager._facade_config.modification_tolerance_height = 2.0
+        manager._facade_config.modification_tolerance_angle = 2.0
+        manager._facade_config.max_movement_duration = 30.0
+
+        # Pending state from an earlier positioning cycle: timer already expired, and the
+        # shutter's last-reported position differs from the stale target well beyond tolerance.
+        manager._last_positioning_time = dt_util.utcnow() - timedelta(seconds=40)
+        manager._last_calculated_height = 80.0
+        manager._last_calculated_angle = 45.0
+        manager._last_reported_height = 50.0
+        manager._last_reported_angle = 30.0
+
+        # --- Dawn switch toggled OFF ---
+        manager._dawn_config.enabled = False
+        manager._previous_dawn_control_enabled = True  # was enabled before this call
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        manager._activate_auto_lock.assert_not_called()
+        assert manager._last_positioning_time is None, "Stale positioning timer must be cleared on the dawn disable transition"
+        assert manager._last_reported_height is None
+
+        # A new stale mismatch accrues before the switch flips back on.
+        manager._last_positioning_time = dt_util.utcnow() - timedelta(seconds=40)
+        manager._last_calculated_height = 20.0
+        manager._last_calculated_angle = 10.0
+        manager._last_reported_height = 90.0
+        manager._last_reported_angle = 60.0
+
+        # --- Dawn switch toggled back ON ---
+        manager._dawn_config.enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        manager._activate_auto_lock.assert_not_called()
+        assert manager._last_positioning_time is None, "Stale positioning timer must be cleared on the dawn enable transition"
+
+    async def test_shadow_flip_resets_stale_calculated_values(self, manager):
+        """A shadow-control enable/disable transition must also clear
+        _last_calculated_height/_last_calculated_angle, not just
+        _last_positioning_time/_last_reported_height/_last_reported_angle. Otherwise a stale
+        calculated target survives with _last_positioning_time=None (harmless while None) but
+        becomes "armed" again the moment anything later writes a fresh _last_positioning_time
+        without also writing a correspondingly fresh calculated value, leaving a window where
+        _check_positioning_completed() could still compare against the stale calculated target."""
+        manager._last_calculated_height = 80.0
+        manager._last_calculated_angle = 45.0
+
+        manager._shadow_config.enabled = False
+        manager._previous_shadow_control_enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager._last_calculated_height == 0.0, "Stale calculated height must be reset on the shadow enable/disable transition"
+        assert manager._last_calculated_angle == 0.0, "Stale calculated angle must be reset on the shadow enable/disable transition"
+
+    async def test_dawn_flip_resets_stale_calculated_values(self, manager):
+        """Same as test_shadow_flip_resets_stale_calculated_values, but for the dawn
+        enable/disable transition."""
+        manager._last_calculated_height = 80.0
+        manager._last_calculated_angle = 45.0
+
+        manager._dawn_config.enabled = False
+        manager._previous_dawn_control_enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager._last_calculated_height == 0.0, "Stale calculated height must be reset on the dawn enable/disable transition"
+        assert manager._last_calculated_angle == 0.0, "Stale calculated angle must be reset on the dawn enable/disable transition"

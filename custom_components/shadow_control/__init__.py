@@ -905,6 +905,12 @@ class ShadowControlManager:
         # detection below can never see. None means "not yet observed" (first call), so the
         # very first evaluation never spuriously triggers a reset.
         self._previous_shadow_control_enabled: bool | None = None
+        # Same rationale as _previous_shadow_control_enabled above, but for the fully parallel
+        # Dawn mechanism: switch.shadow_control_<x>_d01_steuerung_aktiv is backed by its own
+        # ShadowControlSwitch instance and independently drives shutter state (DAWN_FULL_CLOSED
+        # etc.) via _dawn_config.enabled. Its _notify_integration() also calls this method with
+        # event=None, so it needs its own transition tracking.
+        self._previous_dawn_control_enabled: bool | None = None
         self._last_reported_height: float | None = None
         self._last_reported_angle: float | None = None
         self._is_external_modification_detected: bool = False
@@ -2095,7 +2101,27 @@ class ShadowControlManager:
             self._last_positioning_time = None
             self._last_reported_height = None
             self._last_reported_angle = None
+            self._last_calculated_height = 0.0
+            self._last_calculated_angle = 0.0
         self._previous_shadow_control_enabled = self._shadow_config.enabled
+
+        # Mirror the above for Dawn (see _previous_dawn_control_enabled comment in __init__):
+        # switch.shadow_control_<x>_d01_steuerung_aktiv is a separate ShadowControlSwitch
+        # instance whose _notify_integration() also calls this method with event=None, and
+        # _dawn_config.enabled independently drives shutter state (DAWN_FULL_CLOSED etc.), so
+        # it needs the identical stale-bookkeeping reset on its own enable/disable transitions.
+        if self._previous_dawn_control_enabled is not None and self._dawn_config.enabled != self._previous_dawn_control_enabled:
+            self.logger.debug(
+                "Dawn control enabled state changed (%s -> %s) - resetting stale positioning-verification bookkeeping",
+                self._previous_dawn_control_enabled,
+                self._dawn_config.enabled,
+            )
+            self._last_positioning_time = None
+            self._last_reported_height = None
+            self._last_reported_angle = None
+            self._last_calculated_height = 0.0
+            self._last_calculated_angle = 0.0
+        self._previous_dawn_control_enabled = self._dawn_config.enabled
 
         # Also check here (not only in the cover state-change listener) so that a manual
         # movement stored during the positioning timer window (FALL A) is detected even
