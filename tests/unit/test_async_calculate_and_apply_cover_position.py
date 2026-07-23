@@ -263,6 +263,53 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         assert manager._enforce_position_update is True
 
+    async def test_lock_with_position_restore_does_not_enforce(self, manager):
+        """Bug (Restart-Hochfahren via Enforce, 2026-07-23): the lock-with-position internal
+        switch is a RestoreEntity that fires this listener with old_state=None when its own
+        platform restores its persisted value during HA startup/reload - that is a restore,
+        not a real user toggle. Live-confirmed: wz_west's restore-transition to "off" computed
+        a mismatched temp_calculated_height/angle from not-yet-settled sun/config data and set
+        _enforce_position_update = True, which bypasses the only_close/only_open ratchet and
+        physically opened the cover to 100% before self-correcting via auto-lock ~50s later.
+        A state change from old_state=None must be treated as a restore and skip the
+        enforce-position check entirely, regardless of what new_state.state is or whether the
+        (possibly stale) calculated position would otherwise have differed from the forced one.
+        """
+        manager._dynamic_config.lock_integration = False
+        manager._dynamic_config.lock_height = 40.0
+        manager._dynamic_config.lock_angle = 30.0
+        manager._previous_shutter_height = 50.0
+        manager._previous_shutter_angle = 45.0
+
+        lock_entity = "switch.lock_with_position"
+
+        manager._config.get = MagicMock(
+            side_effect=lambda key: lock_entity if key == SCDynamicInput.LOCK_INTEGRATION_WITH_POSITION_ENTITY.value else None
+        )
+
+        # Deliberately mismatched vs. forced (40.0, 30.0) - if the restore guard is missing,
+        # this alone would flip _enforce_position_update to True.
+        manager._calculate_shutter_height = MagicMock(return_value=80.0)
+        manager._calculate_shutter_angle = MagicMock(return_value=70.0)
+        manager._facade_config.neutral_pos_height = 80.0
+        manager._facade_config.neutral_pos_angle = 70.0
+
+        event = Event(
+            "state_changed",
+            {
+                "entity_id": lock_entity,
+                "old_state": None,
+                "new_state": MagicMock(state=STATE_OFF),
+            },
+        )
+
+        await manager.async_calculate_and_apply_cover_position(event=event)
+
+        assert manager._enforce_position_update is False
+        # previous_shutter_height/angle must also stay untouched by the skipped branch.
+        assert manager._previous_shutter_height == 50.0
+        assert manager._previous_shutter_angle == 45.0
+
     async def test_lock_with_position_disabled_position_same(self, manager):
         """Test lock with position disabled but position is same (Branch 8A1 + 9B)."""
         manager._dynamic_config.lock_integration = False

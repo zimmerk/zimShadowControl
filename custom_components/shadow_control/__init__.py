@@ -2357,7 +2357,36 @@ class ShadowControlManager:
                     entity == self._config.get(SCDynamicInput.LOCK_INTEGRATION_WITH_POSITION_ENTITY.value)
                     or entity == entity_id_lock_with_position_manual
                 ):
-                    if new_state.state == "off" and not self._dynamic_config.lock_integration:
+                    if old_state is None:
+                        # Bug (Restart-Hochfahren via Enforce, 2026-07-23): entity_id_lock_with_position_manual
+                        # is a RestoreEntity-backed internal switch belonging to THIS entry's own switch
+                        # platform. During HA startup/reload its platform restore fires this very listener
+                        # with old_state=None (unavailable -> restored value) - that is a restore, not a
+                        # real user toggle. The branches below used to run unconditionally on any state
+                        # change here: the "disabled" branch computes temp_calculated_height/angle from
+                        # whatever sun/config data _check_if_facade_is_in_sun()/_calculate_shutter_height()
+                        # see *at that instant* (often still fallback defaults, see the Phase 2.5 comment in
+                        # _position_shutter) and, on a mismatch against the forced lock position, sets
+                        # _enforce_position_update = True - which deliberately BYPASSES the only_close/
+                        # only_open ratchet (see packages/shadow_control.yaml's own "War 100 -> verursachte
+                        # das Restart-Hochfahren (Enforce umgeht only_close)" comment, a 2026-06-28 fix for
+                        # the same symptom via a different avenue). The "enabled" branch has the identical
+                        # unconditional _enforce_position_update = True. Live-confirmed 2026-07-23: wz_west
+                        # logged "Calculated position (0.0%, 60.0%) differs from forced position (0.0%,
+                        # 0.0%) -> enforcing position update" at 20:19:15, 14s after HA start - causing
+                        # wohnzimmer_west_links/_rechts (and, via the equivalent gap on other instances,
+                        # bad_nord/ankleide/flur/flur_2/wohnzimmer_nord) to open to 100% before
+                        # self-correcting via auto-lock roughly 50s later. Mirror the
+                        # config_entities_requiring_immediate_positioning restore-skip further above: a
+                        # state change from None is a restore, not a real toggle, so skip the
+                        # enforce-position logic (and the enable-branch's storing of lock-state values)
+                        # entirely here.
+                        self.logger.info(
+                            "Lock-with-position entity '%s' restored from unknown state (old_state is None) -> "
+                            "skipping enforce-position check to avoid a restart-triggered forced movement",
+                            entity,
+                        )
+                    elif new_state.state == "off" and not self._dynamic_config.lock_integration:
                         # Lock with position DISABLED
                         self.logger.info("Lock with position was disabled and simple lock already disabled")
 
