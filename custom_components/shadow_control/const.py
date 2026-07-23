@@ -311,7 +311,13 @@ class SCDefaults(Enum):
     MAX_MOVEMENT_DURATION_VALUE = 30
     MODIFICATION_TOLERANCE_HEIGHT_STATIC = 3
     MODIFICATION_TOLERANCE_ANGLE_STATIC = 3  # noqa: PIE796
-    NEUTRAL_POS_HEIGHT_VALUE = 0  # noqa: PIE796
+    # 2026-07-23: cover_position = 100 - SC_hoehe, also erzeugt hoehe=0 einen
+    # cover_position=100 (hochgefahren) statt "unten". Fuer dieses Setup (Tilt-only-
+    # Modell, Jalousien sollen immer unten bleiben, nur die Lamellen bewegen sich) ist
+    # 100 (-> cover_position=0) der korrekte Fallback-Default fuer noch nicht
+    # konfigurierte/restaurierte Instanzen. Siehe packages/shadow_control.yaml fuer den
+    # Live-Vorfall, der das aufgedeckt hat.
+    NEUTRAL_POS_HEIGHT_VALUE = 100  # noqa: PIE796
     NEUTRAL_POS_ANGLE_VALUE = 0  # noqa: PIE796
     SHADOW_BRIGHTNESS_THRESHOLD_WINTER_VALUE = 30000
     SHADOW_BRIGHTNESS_THRESHOLD_SUMMER_VALUE = 50000
