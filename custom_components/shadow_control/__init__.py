@@ -353,6 +353,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
     # Load platforms (like sensors)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Config-entry-reload race fix (s. Memory shadow_control_jalousien.md, "Jalousie faehrt
+    # hoch"-Vorfaelle 2026-07-10 ff.): on a reload, Home Assistant is already fully running, so
+    # _async_register_listeners() schedules an immediate recalculation task instead of waiting
+    # for EVENT_HOMEASSISTANT_STARTED. That task can - and typically does - run before the
+    # async_forward_entry_setups() call above has returned, i.e. before this entry's own
+    # number/switch/select/binary_sensor entities (movement_restriction, shutter_max_height,
+    # auto_lock, ...) are guaranteed readable. Only now, with platform loading for THIS entry
+    # confirmed complete, is it safe to mark startup/reload restore as complete and perform the
+    # real post-reload calculation. On a genuine cold boot hass.is_running is still False here;
+    # _startup_restore_complete stays False and the calculation happens later instead, gated by
+    # the real EVENT_HOMEASSISTANT_STARTED event (see _async_home_assistant_started()), which
+    # additionally gives the wider HA ecosystem (e.g. sensors owned by other integrations) a
+    # chance to be ready too.
+    if hass.is_running:
+        manager.mark_startup_restore_complete()
+        await manager.async_calculate_and_apply_cover_position(None)
+
     # Add listeners for update of input values and integration trigger
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
@@ -996,10 +1013,20 @@ class ShadowControlManager:
                     self._dynamic_config.movement_restriction_height,
                 )
             else:
-                self._dynamic_config.movement_restriction_height = MovementRestricted.NO_RESTRICTION
+                # Sticky fallback: keep the manager's own last-known restriction instead of
+                # silently resetting to NO_RESTRICTION - mirrors the shutter_max_height fix
+                # (f6c68c6) for the same class of problem. Falling back to NO_RESTRICTION here
+                # disables the movement-restriction safety net (e.g. only_close) exactly when
+                # the entity is transiently unavailable/unknown - such as during a config-entry
+                # reload race, before this entity's own platform has finished restoring - which
+                # is precisely the window where the safety net matters most. The field already
+                # starts out as NO_RESTRICTION on a fresh manager (see DynamicConfig.__init__),
+                # so this is a no-op there, but correctly "stickies" on the real configured
+                # value once it has been read at least once.
                 self.logger.debug(
-                    "Movement restriction height entity configured but unavailable (%s), using default NO_RESTRICTION",
+                    "Movement restriction height entity configured but unavailable (%s), keeping last-known value %s",
                     configured_height_entity_id,
+                    self._dynamic_config.movement_restriction_height,
                 )
         else:
             # Use internal entity
@@ -1008,10 +1035,8 @@ class ShadowControlManager:
                 state = self.hass.states.get(entity_id_movement_restriction_height)
                 if state and state.state not in ["unavailable", "unknown"]:
                     self._dynamic_config.movement_restriction_height = self._get_movement_restricted_from_state(state.state)
-                else:
-                    self._dynamic_config.movement_restriction_height = MovementRestricted.NO_RESTRICTION
-            else:
-                self._dynamic_config.movement_restriction_height = MovementRestricted.NO_RESTRICTION
+                # else: sticky fallback, keep self._dynamic_config.movement_restriction_height as-is (see comment above)
+            # else: entity ID not (yet) resolvable at all - sticky fallback, same rationale
 
             self.logger.debug(
                 "Movement restriction height entity NOT configured or set to 'none', using value %s from internal entity",
@@ -1031,10 +1056,11 @@ class ShadowControlManager:
                     self._dynamic_config.movement_restriction_angle,
                 )
             else:
-                self._dynamic_config.movement_restriction_angle = MovementRestricted.NO_RESTRICTION
+                # Sticky fallback - see comment on the height branch above for the rationale.
                 self.logger.debug(
-                    "Movement restriction angle entity configured but unavailable (%s), using default NO_RESTRICTION",
+                    "Movement restriction angle entity configured but unavailable (%s), keeping last-known value %s",
                     configured_angle_entity_id,
+                    self._dynamic_config.movement_restriction_angle,
                 )
         else:
             # Use internal entity
@@ -1043,10 +1069,8 @@ class ShadowControlManager:
                 state = self.hass.states.get(entity_id_movement_restriction_angle)
                 if state and state.state not in ["unavailable", "unknown"]:
                     self._dynamic_config.movement_restriction_angle = self._get_movement_restricted_from_state(state.state)
-                else:
-                    self._dynamic_config.movement_restriction_angle = MovementRestricted.NO_RESTRICTION
-            else:
-                self._dynamic_config.movement_restriction_angle = MovementRestricted.NO_RESTRICTION
+                # else: sticky fallback, keep self._dynamic_config.movement_restriction_angle as-is
+            # else: entity ID not (yet) resolvable at all - sticky fallback, same rationale
 
             self.logger.debug(
                 "Movement restriction angle entity NOT configured or set to 'none', using value %s from internal entity",
@@ -1068,6 +1092,19 @@ class ShadowControlManager:
 
         self.logger.debug("=== Manager lifecycle started ===")
 
+    def mark_startup_restore_complete(self) -> None:
+        """Mark startup/reload restore as complete, allowing _position_shutter physical output.
+
+        Called from async_setup_entry() for the config-entry-reload case (Home Assistant is
+        already fully running), right after await hass.config_entries.async_forward_entry_setups()
+        has returned - i.e. once this entry's own number/switch/select/binary_sensor entities are
+        guaranteed to be loaded and readable. Must NOT be called for the genuine cold-boot case;
+        there, _startup_restore_complete is instead set from _async_home_assistant_started() once
+        the real EVENT_HOMEASSISTANT_STARTED event fires, additionally giving the wider HA
+        ecosystem (e.g. sensors owned by other integrations) a chance to be ready too.
+        """
+        self._startup_restore_complete = True
+
     def _async_register_listeners(self) -> None:
         """Register listener for state changes of relevant entities."""
         self.logger.debug("Registering listeners...")
@@ -1082,7 +1119,18 @@ class ShadowControlManager:
             # As _async_home_assistant_started is a async method and we're not within an awaitable context
             # within this function, we use hass.async_create_task with 'None' as event object. At a direct
             # call there is no event object available.
-            self.hass.async_create_task(self._async_home_assistant_started(None))
+            #
+            # mark_complete=False: this task is scheduled to run ASAP and typically executes
+            # while async_setup_entry() is still awaiting async_forward_entry_setups() for THIS
+            # very entry - i.e. before our own number/switch/select/binary_sensor entities are
+            # guaranteed readable. It must therefore NOT be the one to flip
+            # _startup_restore_complete to True (that used to be the reload-race bug: this task
+            # unconditionally set the flag before its own calculation, defeating the Phase 2.5
+            # guard in _position_shutter() for the entire reload). async_setup_entry() sets the
+            # flag itself, once async_forward_entry_setups() has actually returned. Any
+            # calculation this task triggers before that point is safely skipped by the
+            # (now unconditional) Phase 2.5 guard; it still updates internal/attribute state.
+            self.hass.async_create_task(self._async_home_assistant_started(None, mark_complete=False))
 
         tracked_inputs = []
         # Entities from SCDynamicInput and other relevant config inputs that trigger recalculation
@@ -1499,14 +1547,30 @@ class ShadowControlManager:
             unsub_func()
         self._listeners = []
 
-    async def _async_home_assistant_started(self, event: Event) -> None:
-        """Calculate positions after start of Home Assistant."""
+    async def _async_home_assistant_started(self, event: Event, *, mark_complete: bool = True) -> None:
+        """Calculate positions after start of Home Assistant.
+
+        Args:
+            event: The EVENT_HOMEASSISTANT_STARTED event, or None when invoked directly (reload).
+            mark_complete: Whether this call is allowed to mark startup/reload restore as
+                complete. True (default) for the genuine cold-boot path, where this method is
+                registered as the EVENT_HOMEASSISTANT_STARTED listener itself - by the time that
+                real event fires, this entry's own platforms are guaranteed to already be
+                loaded (async_setup_entry() incl. its forward_entry_setups() always completes
+                before HA's overall started event during a cold boot). False for the reload path
+                (see _async_register_listeners()), where this method is instead invoked directly
+                via an immediately-scheduled task that can run before THIS entry's own platforms
+                have finished (re-)loading; there, async_setup_entry() itself takes over marking
+                restore complete once async_forward_entry_setups() has actually returned.
+
+        """
         self.logger.debug("Home Assistant started event received. Performing initial calculation.")
 
-        # Mark startup restore as complete BEFORE the calculation so that _position_shutter
-        # is allowed to send physical output. By the time this event fires, all platforms
-        # (including binary_sensor which restores auto_lock) have been set up.
-        self._startup_restore_complete = True
+        if mark_complete:
+            # Mark startup restore as complete BEFORE the calculation so that _position_shutter
+            # is allowed to send physical output. By the time this event fires, all platforms
+            # (including binary_sensor which restores auto_lock) have been set up.
+            self._startup_restore_complete = True
 
         await self.async_calculate_and_apply_cover_position(None)
 
@@ -2759,20 +2823,42 @@ class ShadowControlManager:
             self._update_extra_state_attributes()
             return  # Exit here, as no physical output should happen on the initial run
 
-        # --- Phase 2.5: Block physical output during HA startup (before homeassistant_started fires) ---
-        # Between manager start and EVENT_HOMEASSISTANT_STARTED, platforms are still being set up.
-        # Critically, the binary_sensor platform restores auto_lock state only during its own setup,
-        # which happens after the manager starts listening to entity changes. Entity state-restore
-        # events (old_state=None → actual value) can trigger _position_shutter before auto_lock is
-        # restored, causing the cover to move as if unlocked even when it should be locked.
-        # _startup_restore_complete is set to True just before the homeassistant_started calculation,
-        # guaranteeing all platforms (incl. binary_sensor) have been set up by then.
-        # For reloads (hass.is_running=True), movements are never blocked here.
-        if not self._startup_restore_complete and not self.hass.is_running:
+        # --- Phase 2.5: Block physical output until this entry's own platforms have restored ---
+        # Between manager start and platform setup finishing, our own number/switch/select/
+        # binary_sensor entities (movement_restriction, shutter_max_height, auto_lock, ...)
+        # are not necessarily readable yet. Critically, the binary_sensor platform restores
+        # auto_lock state only during its own setup, which happens after the manager starts
+        # listening to entity changes, and unavailable config-number entities fall back to
+        # hardcoded (wrong) defaults - e.g. SHADOW_SHUTTER_MAX_HEIGHT_VALUE=100 - in
+        # _update_input_values(). Entity state-restore events (old_state=None -> actual value)
+        # or an independently-scheduled recalculation task can trigger _position_shutter before
+        # restore is complete, causing the cover to move to a wrong/default target even when
+        # only_close + shutter_max_height=0 is configured (only_close's ratchet only rejects a
+        # DECREASE from the previous - real, correct - value, so a wrongly-defaulted higher
+        # target still passes it).
+        #
+        # _startup_restore_complete is set to True only once this entry's platforms are
+        # confirmed loaded:
+        # - Reload (hass.is_running was already True when listeners were registered):
+        #   set from async_setup_entry(), right after async_forward_entry_setups() returns.
+        # - Genuine cold boot: set from _async_home_assistant_started() when the real
+        #   EVENT_HOMEASSISTANT_STARTED event fires (which - during a cold boot - always comes
+        #   after this entry's own async_setup_entry(), including its forward_entry_setups(),
+        #   has completed, and additionally gives the wider HA ecosystem, e.g. sensors owned by
+        #   other integrations, a chance to be ready too).
+        #
+        # This guard used to be skipped entirely whenever hass.is_running was already True
+        # (i.e. exactly the reload case) on the theory that a reload never needs this
+        # protection - that reasoning was wrong: reloads race platform (re-)loading exactly
+        # like a cold boot does, and an independently-scheduled recalculation task can run
+        # before async_forward_entry_setups() has returned. The guard is therefore now
+        # unconditional; blocking movement can never itself violate a movement restriction or
+        # produce a wrong value, since no physical output happens at all while blocked.
+        if not self._startup_restore_complete:
             self.logger.debug(
-                "Skipping physical output: HA startup not yet complete "
-                "(startup_restore_complete=False, hass.is_running=False). "
-                "Waiting for homeassistant_started event before allowing movement."
+                "Skipping physical output: startup/reload restore not yet complete "
+                "(startup_restore_complete=False). Waiting for this entry's platforms to finish "
+                "loading (reload) or the homeassistant_started event (cold boot) before allowing movement."
             )
             self._update_extra_state_attributes()
             return

@@ -206,8 +206,25 @@ class TestPositionShutter:
         # Should still update attributes
         manager._update_extra_state_attributes.assert_called_once()
 
-    async def test_allows_physical_output_when_ha_running_even_if_restore_incomplete(self, manager):
-        """Test that physical output is allowed during reload (HA already running) even if restore incomplete."""
+    async def test_blocks_physical_output_during_reload_even_if_ha_running(self, manager):
+        """Regression test for the "Jalousie faehrt hoch" reload-race incidents (s. Memory
+        shadow_control_jalousien.md, 2026-07-10 ff.): physical output must stay blocked while
+        restore is incomplete, REGARDLESS of hass.is_running.
+
+        This case (_startup_restore_complete=False, hass.is_running=True) is exactly a
+        config-entry reload: HA itself is already fully running, but THIS entry's own
+        number/switch/select/binary_sensor platforms (movement_restriction, shutter_max_height,
+        auto_lock, ...) may not have finished (re-)loading yet - _async_register_listeners()
+        schedules an immediate recalculation task for this case that can run before
+        async_forward_entry_setups() has returned. Previously this guard was skipped entirely
+        whenever hass.is_running was True, on the (wrong) assumption that a reload never needs
+        this protection - that let a recalculation racing platform load-through-defaulted
+        config values (e.g. hardcoded SHADOW_SHUTTER_MAX_HEIGHT_VALUE=100 instead of the
+        real, configured 0) reach _should_output_be_updated(), where only_close's ratchet
+        (new_value > previous_value) does NOT protect against it: previous_value here is the
+        real, correct 0 and the wrongly-defaulted new_value 100 passes the ratchet (100 > 0),
+        i.e. only_close explicitly permits exactly this unwanted opening.
+        """
         manager._startup_restore_complete = False
         manager.hass.is_running = True
         manager.current_lock_state = LockState.UNLOCKED
@@ -216,8 +233,10 @@ class TestPositionShutter:
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
-        # Should call positioning services (HA is running = reload scenario)
-        manager.hass.services.async_call.assert_called()
+        # Must NOT call positioning services - reload no longer bypasses this guard.
+        manager.hass.services.async_call.assert_not_called()
+        # Should still update internal/attribute state.
+        manager._update_extra_state_attributes.assert_called_once()
 
     async def test_allows_physical_output_after_startup_restore_complete(self, manager):
         """Test that physical output is allowed once startup restore is complete."""
