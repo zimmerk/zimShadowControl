@@ -13,6 +13,7 @@ from custom_components.shadow_control.const import (
     SCDawnInput,
     SCDynamicInput,
     SCShadowInput,
+    ShutterState,
     ShutterType,
 )
 
@@ -498,3 +499,131 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         assert manager._last_calculated_height == 0.0, "Stale calculated height must be reset on the dawn enable/disable transition"
         assert manager._last_calculated_angle == 0.0, "Stale calculated angle must be reset on the dawn enable/disable transition"
+
+    # ========================================================================
+    # REGRESSION: switch-driven disable must also force current_shutter_state back to
+    # NEUTRAL, not just reset the positioning-verification bookkeeping (fix #1/#2). Live
+    # production proof (shadow_control_bad_nord, 2026-07-23 05:12:50, hours after B01 was
+    # switched off the previous evening): a routine brightness-triggered recalculation ran
+    # with both Shadow and Dawn config confirmed enabled=False in the debug log, yet still
+    # produced "Expected: 100.0% / 50.0°" (SCDefaults.SHADOW_SHUTTER_LOOK_THROUGH_ANGLE_VALUE)
+    # against "Reported: 100.0% / 0.0°", triggering another false-positive auto-lock.
+    #
+    # Root cause: _shadow_handling_was_disabled()/_dawn_handling_was_disabled() (which force
+    # current_shutter_state back to ShutterState.NEUTRAL and cancel any running timer, see
+    # __init__.py) are only invoked from the `if event:` block, gated on a genuine external
+    # state_changed event on CONTROL_ENABLED_ENTITY. ShadowControlSwitch._notify_integration()
+    # (switch.py) calls async_calculate_and_apply_cover_position with event=None on every
+    # toggle, so that block - and therefore these two methods - was never reached from the
+    # switch-driven flip-detection added in fix #1/#2. current_shutter_state was thus left
+    # parked in whatever non-neutral state it was last in (e.g. SHADOW_HORIZONTAL_NEUTRAL),
+    # and every later recalculation cycle keeps "servicing" that stale state via the
+    # _state_handlers dispatch in _process_shutter_state() - which computes/re-applies a
+    # target for whatever `current_shutter_state` currently is, independent of `enabled`
+    # (only the transition *into* a new state re-checks `enabled`, not the fact of already
+    # sitting in a non-neutral state) - instead of resetting to NEUTRAL immediately.
+    # ========================================================================
+
+    async def test_shadow_disable_transition_forces_current_shutter_state_to_neutral(self, manager):
+        """Reproduces the live incident for the Shadow mechanism.
+
+        Without the fix, the switch-driven disable transition only resets the positioning-
+        verification bookkeeping (fix #1/#2) but never touches current_shutter_state, so it
+        survives the disable untouched. With the fix, the disable transition also invokes the
+        real _shadow_handling_was_disabled() (mirroring the genuine external-event path),
+        forcing current_shutter_state back to NEUTRAL immediately - closing the window in
+        which a later cycle could still compute/compare a stale non-neutral target.
+        """
+        # Bind the REAL _shadow_handling_was_disabled (the base fixture auto-mocks it, which
+        # would trivially "pass" without proving it actually resets the state machine).
+        manager._shadow_handling_was_disabled = ShadowControlManager._shadow_handling_was_disabled.__get__(manager)
+
+        # FSM was left mid-cycle in a non-neutral shadow state (look-through / horizontal
+        # neutral) with a stale look-through target, exactly like the live incident.
+        manager.current_shutter_state = ShutterState.SHADOW_HORIZONTAL_NEUTRAL
+        manager._last_calculated_height = 100.0
+        manager._last_calculated_angle = 50.0  # SCDefaults.SHADOW_SHUTTER_LOOK_THROUGH_ANGLE_VALUE
+
+        # --- Switch toggled OFF (event=None, exactly like ShadowControlSwitch) ---
+        manager._shadow_config.enabled = False
+        manager._previous_shadow_control_enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.NEUTRAL, (
+            "current_shutter_state must be forced back to NEUTRAL on the switch-driven disable "
+            "transition, exactly like the genuine external-event path does via "
+            "_shadow_handling_was_disabled()"
+        )
+
+        # --- Hours pass: a routine recalculation cycle runs, enabled is still False (no
+        # further flip) - current_shutter_state must stay at NEUTRAL, not drift back. ---
+        manager._previous_shadow_control_enabled = manager._shadow_config.enabled  # already set by the call above
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.NEUTRAL
+        assert manager._last_calculated_height == 0.0
+        assert manager._last_calculated_angle == 0.0
+
+    async def test_dawn_disable_transition_forces_current_shutter_state_to_neutral(self, manager):
+        """Mirror of test_shadow_disable_transition_forces_current_shutter_state_to_neutral,
+        but for the fully parallel Dawn mechanism (switch.shadow_control_<x>_d01_steuerung_aktiv
+        / _dawn_handling_was_disabled())."""
+        manager._dawn_handling_was_disabled = ShadowControlManager._dawn_handling_was_disabled.__get__(manager)
+
+        manager.current_shutter_state = ShutterState.DAWN_HORIZONTAL_NEUTRAL
+        manager._last_calculated_height = 100.0
+        manager._last_calculated_angle = 50.0  # SCDefaults.DAWN_SHUTTER_LOOK_THROUGH_ANGLE_VALUE
+
+        # --- Switch toggled OFF (event=None, exactly like ShadowControlSwitch) ---
+        manager._dawn_config.enabled = False
+        manager._previous_dawn_control_enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.NEUTRAL, (
+            "current_shutter_state must be forced back to NEUTRAL on the switch-driven dawn "
+            "disable transition, exactly like the genuine external-event path does via "
+            "_dawn_handling_was_disabled()"
+        )
+
+        manager._previous_dawn_control_enabled = manager._dawn_config.enabled
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.NEUTRAL
+        assert manager._last_calculated_height == 0.0
+        assert manager._last_calculated_angle == 0.0
+
+    async def test_shadow_disable_transition_does_not_touch_state_when_already_neutral(self, manager):
+        """Sanity check: _shadow_handling_was_disabled() is a no-op when already NEUTRAL, so
+        the new call added for the disable transition must not raise or otherwise misbehave
+        when there was nothing stale to reset."""
+        manager._shadow_handling_was_disabled = ShadowControlManager._shadow_handling_was_disabled.__get__(manager)
+        manager.current_shutter_state = ShutterState.NEUTRAL
+
+        manager._shadow_config.enabled = False
+        manager._previous_shadow_control_enabled = True
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.NEUTRAL
+
+    async def test_shadow_enable_transition_does_not_force_neutral(self, manager):
+        """Symmetry check: unlike the disable direction, there is no "_shadow_handling_was_
+        enabled()" counterpart anywhere in the production code (the genuine external-event
+        path doesn't force anything special on enable either - it just lets the normal
+        _process_shutter_state() dispatch pick up from wherever current_shutter_state is).
+        The fix must therefore only force NEUTRAL on the disable transition, not on enable."""
+        manager._shadow_handling_was_disabled = ShadowControlManager._shadow_handling_was_disabled.__get__(manager)
+        manager.current_shutter_state = ShutterState.SHADOW_HORIZONTAL_NEUTRAL
+
+        manager._shadow_config.enabled = True
+        manager._previous_shadow_control_enabled = False
+
+        await manager.async_calculate_and_apply_cover_position(event=None)
+
+        assert manager.current_shutter_state == ShutterState.SHADOW_HORIZONTAL_NEUTRAL, (
+            "Enabling shadow control must not force current_shutter_state to NEUTRAL - only "
+            "the disable transition does that, mirroring that no _shadow_handling_was_enabled() "
+            "equivalent exists in the production code"
+        )

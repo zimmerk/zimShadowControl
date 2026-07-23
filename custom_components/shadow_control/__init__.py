@@ -2103,6 +2103,21 @@ class ShadowControlManager:
             self._last_reported_angle = None
             self._last_calculated_height = 0.0
             self._last_calculated_angle = 0.0
+            # Mirror what the genuine external-event path does for a real state_changed on
+            # SCShadowInput.CONTROL_ENABLED_ENTITY (see the `if event:` block further down,
+            # which calls _shadow_handling_was_disabled() when that entity turns "off").
+            # Without this, current_shutter_state (e.g. SHADOW_HORIZONTAL_NEUTRAL /
+            # SHADOW_FULL_CLOSED) is left untouched here and only gets forced back to NEUTRAL
+            # indirectly, on some *later* call to _process_shutter_state() actually completing
+            # its "not enabled -> reposition to neutral" fallback branch for that state - which
+            # can be delayed or skipped entirely (initial-run/HA-restart seeding, an active
+            # lock, or simply no further trigger firing before the next unrelated recalculation
+            # cycle finds the FSM still parked in a stale non-neutral state and recomputes a
+            # fresh non-zero target for it). Forcing NEUTRAL immediately here, on the disable
+            # transition itself, closes that gap - only on disable, mirroring that there is no
+            # analogous "was_enabled" method for the enable direction either.
+            if not self._shadow_config.enabled:
+                await self._shadow_handling_was_disabled()
         self._previous_shadow_control_enabled = self._shadow_config.enabled
 
         # Mirror the above for Dawn (see _previous_dawn_control_enabled comment in __init__):
@@ -2121,6 +2136,10 @@ class ShadowControlManager:
             self._last_reported_angle = None
             self._last_calculated_height = 0.0
             self._last_calculated_angle = 0.0
+            # Mirror _dawn_handling_was_disabled() (see comment on the analogous shadow-control
+            # block above for the full rationale) - only on the disable transition.
+            if not self._dawn_config.enabled:
+                await self._dawn_handling_was_disabled()
         self._previous_dawn_control_enabled = self._dawn_config.enabled
 
         # Also check here (not only in the cover state-change listener) so that a manual
