@@ -12,5 +12,5 @@
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/zimmerk/zimShadowControl/issues",
-  "version": "0.13.0+zimenergy.7"
+  "version": "0.13.0+zimenergy.8"
 }
