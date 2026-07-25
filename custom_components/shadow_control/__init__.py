@@ -202,7 +202,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
                 backupCount=3,
                 encoding="utf-8",
             )
-            handler.setFormatter(logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s — %(message)s"))
+            # 2026-07-25 (User-Feedback: wiederholte UTC/Lokalzeit-Verwechslung beim
+            # Debuggen): diese Datei umgeht Docker komplett (roher File-Handler, kein
+            # stdout) - "docker logs -t"s UTC-Zeitstempel deckt sie NICHT ab, anders
+            # als das normale HA-Core-Log. %z haengt den lokalen UTC-Offset an
+            # (z.B. "+0200"), bleibt dabei weiterhin gut lesbare Lokalzeit, macht sie
+            # aber eindeutig - keine Umrechnung beim Korrelieren mit der REST-API
+            # (die immer explizites UTC liefert) mehr noetig.
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s — %(message)s", datefmt="%Y-%m-%d %H:%M:%S%z")
+            )
             handler.setLevel(log_level)
             return handler
 
