@@ -61,10 +61,13 @@ SC's eigenes previous_shutter_height (noch) None ist, kombiniert mit dem
 Enforce-Positioning-Button.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+import datetime
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.cover import CoverEntityFeature
+from homeassistant.util.dt import UTC
 
 from custom_components.shadow_control import ShadowControlManager
 from custom_components.shadow_control.const import LockState, MovementRestricted, ShutterType
@@ -456,3 +459,106 @@ class TestMovementRestrictionStickyFallback:
         manager._handle_movement_restriction()
 
         assert manager._dynamic_config.movement_restriction_height == MovementRestricted.ONLY_CLOSE
+
+
+@pytest.mark.asyncio
+class TestGracePeriodPinnedForeverAfterReload:
+    """Mechanismus #4 (Vorfall 2026-07-26, im Haus live beobachtet): nach einem
+    Config-Entry-Reload blieb `_ha_start_time` fuer immer None, weil
+    EVENT_HOMEASSISTANT_STARTED zu diesem Zeitpunkt laengst gefeuert hatte und
+    der in __init__ registrierte async_listen_once-Listener nie wieder anschlug.
+
+    `_is_in_ha_restart_grace_period()` liefert bei `_ha_start_time is None`
+    unconditional True - die Grace Period war damit dauerhaft aktiv, und
+    `_async_timer_callback()` hat JEDE timer-gesteuerte Neuberechnung verworfen
+    ("Timer finished during HA restart grace period ... Skipping recalculation"),
+    bis zum naechsten echten HA-Neustart.
+
+    Symptom im Haus: die Zustandsmaschine lief abends korrekt bis SHADOW_NEUTRAL
+    durch, die abschliessende Positionierung wurde aber nie ausgefuehrt - 10 von
+    13 Instanzen standen 34h nach dem HA-Start noch auf ihrem eingefrorenen
+    Beschattungswinkel (winkel=50/55/75/25) statt auf dem berechneten Neutralwert 0.
+    Betroffen war damit JEDER Fork-Deploy, weil der immer mit einem Reload aller
+    13 Config-Entries endet.
+    """
+
+    @staticmethod
+    def _manager(*, ha_start_time):
+        instance = MagicMock(spec=ShadowControlManager)
+        instance.logger = MagicMock()
+        instance._ha_start_time = ha_start_time
+        instance._ha_restart_grace_period_seconds = 30
+        instance._timer = MagicMock()
+        instance._timer_start_time = MagicMock()
+        instance._timer_duration_seconds = 180.0
+        instance.async_calculate_and_apply_cover_position = AsyncMock()
+        instance._is_in_ha_restart_grace_period = ShadowControlManager._is_in_ha_restart_grace_period.__get__(instance)
+        instance._async_timer_callback = ShadowControlManager._async_timer_callback.__get__(instance)
+        return instance
+
+    async def test_timer_callback_is_dead_while_ha_start_time_is_none(self):
+        """Dokumentiert die Bug-Mechanik selbst: solange `_ha_start_time` None ist,
+        verwirft der Timer-Callback die Neuberechnung - unabhaengig davon, wie lange
+        HA schon laeuft. Genau dieser Zustand war nach jedem Reload dauerhaft."""
+        manager = self._manager(ha_start_time=None)
+
+        assert manager._is_in_ha_restart_grace_period() is True
+        await manager._async_timer_callback(now=None)
+
+        manager.async_calculate_and_apply_cover_position.assert_not_called()
+
+    async def test_timer_callback_runs_once_grace_period_has_elapsed(self):
+        """Kern-Regressionstest: mit einem gesetzten `_ha_start_time` (das ist genau
+        das, was der Fix in __init__ beim Reload jetzt tut) laeuft die Grace Period
+        nach 30s ab und der Timer-Callback rechnet wieder normal neu."""
+        long_ago = datetime.datetime.now(tz=UTC) - datetime.timedelta(seconds=3600)
+        manager = self._manager(ha_start_time=long_ago)
+
+        assert manager._is_in_ha_restart_grace_period() is False
+        await manager._async_timer_callback(now=None)
+
+        manager.async_calculate_and_apply_cover_position.assert_called_once_with(None)
+
+    async def test_grace_period_still_protects_the_first_30s_after_setup(self):
+        """Positiv-Kontrolle: die eigentliche Schutzwirkung (kein Cover-Ruckeln waehrend
+        des State-Restores) darf durch den Fix NICHT verlorengehen - direkt nach dem
+        Setup ist die Grace Period weiterhin aktiv, nur eben zeitlich begrenzt."""
+        just_now = datetime.datetime.now(tz=UTC) - datetime.timedelta(seconds=5)
+        manager = self._manager(ha_start_time=just_now)
+
+        assert manager._is_in_ha_restart_grace_period() is True
+        await manager._async_timer_callback(now=None)
+
+        manager.async_calculate_and_apply_cover_position.assert_not_called()
+
+    async def test_manager_created_while_ha_running_seeds_start_time(self, hass, mock_config_entry):
+        """Der eigentliche Fix: wird der Manager aufgebaut, waehrend HA bereits laeuft
+        (Config-Entry-Reload, oder Integration nachtraeglich hinzugefuegt), muss
+        `_ha_start_time` sofort geseedet werden - EVENT_HOMEASSISTANT_STARTED kommt
+        fuer diesen Manager nie wieder. OHNE den Fix bleibt der Wert None und die
+        Grace Period haengt fuer die gesamte Lebensdauer des Entries fest."""
+        mock_config_entry.add_to_hass(hass)
+        assert hass.is_running is True  # Vorbedingung: exakt die Reload-Situation
+
+        manager = ShadowControlManager(hass, mock_config_entry, logging.getLogger(__name__))
+
+        assert manager._ha_start_time is not None, (
+            "_ha_start_time wurde beim Reload-Setup nicht geseedet - _is_in_ha_restart_grace_period() "
+            "liefert damit dauerhaft True und _async_timer_callback() verwirft jede timer-gesteuerte "
+            "Neuberechnung bis zum naechsten echten HA-Neustart."
+        )
+        assert manager._is_in_ha_restart_grace_period() is True, "Die 30s-Schutzwirkung muss ab Setup-Zeitpunkt trotzdem greifen."
+
+    async def test_manager_created_during_cold_boot_still_waits_for_started_event(self, hass, mock_config_entry):
+        """Positiv-Kontrolle: beim echten Kaltstart (HA noch nicht 'running') bleibt es beim
+        bisherigen Verhalten - `_ha_start_time` wird erst durch EVENT_HOMEASSISTANT_STARTED
+        gesetzt, damit die Grace Period ab dem tatsaechlichen HA-Start laeuft und nicht schon
+        ab dem (u.U. deutlich frueheren) Manager-Setup."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch.object(type(hass), "is_running", property(lambda _self: False)):
+            manager = ShadowControlManager(hass, mock_config_entry, logging.getLogger(__name__))
+            assert manager._ha_start_time is None
+
+        await manager._async_ha_started_listener(None)
+        assert manager._ha_start_time is not None

@@ -958,11 +958,23 @@ class ShadowControlManager:
         # _locked_by_auto_lock before auto-lock is properly restored.
         self._startup_restore_complete: bool = False
 
-        # Listen to HA started event
-        self.hass.bus.async_listen_once(
-            EVENT_HOMEASSISTANT_STARTED,
-            self._async_ha_started_listener,
-        )
+        # Listen to HA started event.
+        #
+        # On a config entry reload (or when the integration is added to an already running HA)
+        # EVENT_HOMEASSISTANT_STARTED has long since fired and will never fire again for this
+        # manager. Without seeding _ha_start_time here, it would stay None forever and
+        # _is_in_ha_restart_grace_period() would keep returning True for the entire lifetime of
+        # the entry - which silently disables every timer-driven recalculation
+        # (see _async_timer_callback()) until the next full HA restart. Seeding it with "now"
+        # keeps the intended 30s protection window, measured from setup instead of from boot.
+        if self.hass.is_running:
+            self._ha_start_time = datetime.datetime.now(tz=UTC)
+            self.logger.debug("Manager set up while HA is already running. Grace period of %ds starts now.", self._ha_restart_grace_period_seconds)
+        else:
+            self.hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED,
+                self._async_ha_started_listener,
+            )
 
         self.logger.debug("Manager initialized for target: %s.", self._target_cover_entity_id)
 
@@ -1000,8 +1012,10 @@ class ShadowControlManager:
 
         """
         if self._ha_start_time is None:
-            # HA started event not received yet - assume we're in grace period
-            # This handles the brief window before EVENT_HOMEASSISTANT_STARTED fires
+            # HA started event not received yet - assume we're in grace period.
+            # This only covers the brief cold-boot window before EVENT_HOMEASSISTANT_STARTED
+            # fires; on a reload __init__ seeds _ha_start_time directly, because that event
+            # would otherwise never arrive and pin the grace period on forever.
             return True
 
         time_since_start = (datetime.datetime.now(tz=UTC) - self._ha_start_time).total_seconds()
