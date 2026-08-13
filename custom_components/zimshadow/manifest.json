@@ -8,9 +8,12 @@
   "dependencies": [
     "sun"
   ],
+  "after_dependencies": [
+    "abbfreeathome_ci"
+  ],
   "documentation": "https://github.com/zimmerk/zimShadowControl",
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/zimmerk/zimShadowControl/issues",
-  "version": "0.14.0+zimshadow.1"
+  "version": "0.14.0+zimshadow.2"
 }

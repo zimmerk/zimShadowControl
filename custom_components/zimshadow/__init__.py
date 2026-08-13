@@ -4908,7 +4908,23 @@ class ShadowControlManager:
         cover_state = self.hass.states.get(cover_entity_id)
 
         if cover_state is None:
-            self.logger.warning("Cover entity %s not found", cover_entity_id)
+            # Beim Anlauf ist ein noch nicht angemeldetes Cover ERWARTBAR, kein
+            # Befund: Diese Integration wird eingerichtet, waehrend die
+            # Cover-Integration (free@home) ihre Entities noch anlegt. Das
+            # `after_dependencies` im Manifest verbessert die Reihenfolge, kann
+            # sie aber nicht garantieren — es ordnet das Einrichten der
+            # KOMPONENTE, waehrend config-entry-basierte Integrationen ihre
+            # Plattformen asynchron nachladen.
+            #
+            # ⚠️ Deshalb NICHT die Warnung entfernen, sondern nur im Anlauf
+            # herabstufen: Faellt ein Cover im laufenden Betrieb weg, ist das
+            # sehr wohl ein Befund — und der ging bisher im Rauschen unter.
+            # Am 2026-08-13 standen 162 dieser Zeilen im Tageslog, alle vom
+            # Start.
+            if self._is_initial_run or self._is_in_ha_restart_grace_period():
+                self.logger.debug("Cover entity %s noch nicht da (Anlauf) — warte auf den naechsten Zyklus", cover_entity_id)
+            else:
+                self.logger.warning("Cover entity %s not found", cover_entity_id)
             return 0.0, 0.0
 
         # Get current position (0 = closed, 100 = open)
