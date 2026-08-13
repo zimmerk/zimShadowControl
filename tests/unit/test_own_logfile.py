@@ -206,8 +206,13 @@ async def test_logfile_format(
     # Find the sentinel line and validate every field.
     sentinel_line = next(line for line in content.splitlines() if sentinel in line)
 
-    # Timestamp:  2025-01-30 14:05:32,123
-    assert re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}", sentinel_line)
+    # Timestamp mit Zeitzonen-Offset:  2025-01-30 14:05:32+0100
+    # Der Offset ist Absicht (datefmt="%Y-%m-%d %H:%M:%S%z" in __init__.py): er
+    # macht die Lokalzeit eindeutig, damit sie sich ohne Umrechnung mit der
+    # REST-API korrelieren laesst, die immer explizites UTC liefert. Die frueher
+    # erwartete Millisekunden-Form (",123") gibt es damit nicht mehr — dieser
+    # Test stand bis 2026-08-13 noch darauf, weil die Suite lokal nie lief.
+    assert re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[+-]\d{4}", sentinel_line)
     # Level padded to 8 chars:  INFO
     assert "INFO    " in sentinel_line
     # Logger name
