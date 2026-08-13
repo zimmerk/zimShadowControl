@@ -4,7 +4,7 @@ from enum import Enum, IntEnum
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
-DOMAIN = "shadow_control"
+DOMAIN = "zimshadow"
 DOMAIN_DATA_MANAGERS = f"{DOMAIN}_managers"  # A good practice for unique keys
 DEFAULT_NAME = "Shadow Control"
 SC_CONF_COVERS = "covers"  # Constant for 'covers' key within configuration
@@ -33,7 +33,7 @@ class SCInternal(Enum):
     NEUTRAL_POS_HEIGHT_MANUAL = "facade_neutral_pos_height_manual"
     NEUTRAL_POS_ANGLE_MANUAL = "facade_neutral_pos_angle_manual"
 
-    SHADOW_CONTROL_ENABLED_MANUAL = "shadow_control_enabled_manual"
+    SHADOW_CONTROL_ENABLED_MANUAL = "zimshadow_enabled_manual"
     SHADOW_BRIGHTNESS_THRESHOLD_WINTER_MANUAL = "shadow_brightness_threshold_winter_manual"
     SHADOW_BRIGHTNESS_THRESHOLD_SUMMER_MANUAL = "shadow_brightness_threshold_summer_manual"
     SHADOW_BRIGHTNESS_THRESHOLD_MINIMAL_MANUAL = "shadow_brightness_threshold_minimal_manual"
@@ -172,7 +172,7 @@ class SCFacadeConfig2(Enum):
 class SCShadowInput(Enum):
     """Shadow configuration enums."""
 
-    CONTROL_ENABLED_ENTITY = "shadow_control_enabled_entity"
+    CONTROL_ENABLED_ENTITY = "zimshadow_enabled_entity"
     BRIGHTNESS_THRESHOLD_WINTER_ENTITY = "shadow_brightness_threshold_winter_entity"
     BRIGHTNESS_THRESHOLD_SUMMER_ENTITY = "shadow_brightness_threshold_summer_entity"
     BRIGHTNESS_THRESHOLD_MINIMAL_ENTITY = "shadow_brightness_threshold_minimal_entity"
@@ -315,7 +315,7 @@ class SCDefaults(Enum):
     # cover_position=100 (hochgefahren) statt "unten". Fuer dieses Setup (Tilt-only-
     # Modell, Jalousien sollen immer unten bleiben, nur die Lamellen bewegen sich) ist
     # 100 (-> cover_position=0) der korrekte Fallback-Default fuer noch nicht
-    # konfigurierte/restaurierte Instanzen. Siehe packages/shadow_control.yaml fuer den
+    # konfigurierte/restaurierte Instanzen. Siehe packages/zimshadow.yaml fuer den
     # Live-Vorfall, der das aufgedeckt hat.
     NEUTRAL_POS_HEIGHT_VALUE = 100  # noqa: PIE796
     NEUTRAL_POS_ANGLE_VALUE = 0  # noqa: PIE796
@@ -750,10 +750,10 @@ DEPRECATED_CONFIG_KEYS = {
         "deprecated_in": "v5",
         "migration_hint": "Use 'facade_neutral_pos_angle_manual' instead.",
     },
-    "shadow_control_enabled_static": {
-        "replacement": ["shadow_control_enabled_manual"],
+    "zimshadow_enabled_static": {
+        "replacement": ["zimshadow_enabled_manual"],
         "deprecated_in": "v5",
-        "migration_hint": "Use 'shadow_control_enabled_manual' instead.",
+        "migration_hint": "Use 'zimshadow_enabled_manual' instead.",
     },
     "shadow_brightness_threshold_static": {
         "replacement": [

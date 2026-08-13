@@ -6,8 +6,8 @@ from itertools import count
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import ShutterState
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow import ShutterState
+from custom_components.zimshadow.const import DOMAIN
 from tests.integration.conftest import (
     get_entity_and_show_state,
     set_sun_position,
@@ -71,8 +71,8 @@ TEST_CONFIG = {
                 # "facade_neutral_pos_angle_entity": input_number.g16_neutral_pos_angle
                 #
                 # Shadow configuration
-                # "shadow_control_enabled_entity":
-                "shadow_control_enabled_manual": True,
+                # "zimshadow_enabled_entity":
+                "zimshadow_enabled_manual": True,
                 # "shadow_brightness_threshold_entity":
                 "shadow_brightness_threshold_winter_manual": 50000,
                 # "shadow_after_seconds_entity":

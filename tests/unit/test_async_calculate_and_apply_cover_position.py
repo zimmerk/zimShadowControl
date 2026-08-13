@@ -8,8 +8,8 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Event
 from homeassistant.util import dt as dt_util
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import (
     SCDawnInput,
     SCDynamicInput,
     SCShadowInput,
@@ -62,7 +62,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         # change" so existing tests are unaffected unless a test explicitly changes it.
         instance._shadow_config = MagicMock()
         instance._shadow_config.enabled = True
-        instance._previous_shadow_control_enabled = True
+        instance._previous_zimshadow_enabled = True
         # Dawn mirrors the shadow-control tracking above (its own switch/config, same
         # bypass problem). Same "already enabled, no change" default.
         instance._dawn_config = MagicMock()
@@ -401,9 +401,9 @@ class TestAsyncCalculateAndApplyCoverPosition:
     # ========================================================================
     # REGRESSION: switch.py ShadowControlSwitch toggle (event=None) must not
     # leave stale positioning-verification state that triggers a false-positive
-    # auto-lock. See memory/shadow_control_jalousien.md / production incident:
+    # auto-lock. See memory/zimshadow_jalousien.md / production incident:
     # a periodic "restart all instances" automation toggles
-    # switch.shadow_control_<x>_b01_steuerung_aktiv off then on every 30 minutes.
+    # switch.zimshadow_<x>_b01_steuerung_aktiv off then on every 30 minutes.
     # ========================================================================
 
     async def test_switch_toggle_off_on_does_not_false_positive_auto_lock(self, manager):
@@ -442,7 +442,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         # --- Switch toggled OFF (production: periodic restart automation) ---
         manager._shadow_config.enabled = False
-        manager._previous_shadow_control_enabled = True  # was enabled before this call
+        manager._previous_zimshadow_enabled = True  # was enabled before this call
 
         await manager.async_calculate_and_apply_cover_position(event=None)
 
@@ -468,7 +468,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
     async def test_dawn_switch_toggle_off_on_does_not_false_positive_auto_lock(self, manager):
         """Mirror of test_switch_toggle_off_on_does_not_false_positive_auto_lock, but for the
-        fully parallel Dawn mechanism: switch.shadow_control_<x>_d01_steuerung_aktiv is backed
+        fully parallel Dawn mechanism: switch.zimshadow_<x>_d01_steuerung_aktiv is backed
         by its own ShadowControlSwitch instance, and its _notify_integration() also calls
         async_calculate_and_apply_cover_position(None) on every toggle - same bypass problem,
         tracked independently via _dawn_config.enabled / _previous_dawn_control_enabled."""
@@ -526,7 +526,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         manager._last_calculated_angle = 45.0
 
         manager._shadow_config.enabled = False
-        manager._previous_shadow_control_enabled = True
+        manager._previous_zimshadow_enabled = True
 
         await manager.async_calculate_and_apply_cover_position(event=None)
 
@@ -550,7 +550,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
     # ========================================================================
     # REGRESSION: switch-driven disable must also force current_shutter_state back to
     # NEUTRAL, not just reset the positioning-verification bookkeeping (fix #1/#2). Live
-    # production proof (shadow_control_bad_nord, 2026-07-23 05:12:50, hours after B01 was
+    # production proof (zimshadow_bad_nord, 2026-07-23 05:12:50, hours after B01 was
     # switched off the previous evening): a routine brightness-triggered recalculation ran
     # with both Shadow and Dawn config confirmed enabled=False in the debug log, yet still
     # produced "Expected: 100.0% / 50.0°" (SCDefaults.SHADOW_SHUTTER_LOOK_THROUGH_ANGLE_VALUE)
@@ -593,7 +593,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         # --- Switch toggled OFF (event=None, exactly like ShadowControlSwitch) ---
         manager._shadow_config.enabled = False
-        manager._previous_shadow_control_enabled = True
+        manager._previous_zimshadow_enabled = True
 
         await manager.async_calculate_and_apply_cover_position(event=None)
 
@@ -605,7 +605,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         # --- Hours pass: a routine recalculation cycle runs, enabled is still False (no
         # further flip) - current_shutter_state must stay at NEUTRAL, not drift back. ---
-        manager._previous_shadow_control_enabled = manager._shadow_config.enabled  # already set by the call above
+        manager._previous_zimshadow_enabled = manager._shadow_config.enabled  # already set by the call above
         await manager.async_calculate_and_apply_cover_position(event=None)
 
         assert manager.current_shutter_state == ShutterState.NEUTRAL
@@ -614,7 +614,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
     async def test_dawn_disable_transition_forces_current_shutter_state_to_neutral(self, manager):
         """Mirror of test_shadow_disable_transition_forces_current_shutter_state_to_neutral,
-        but for the fully parallel Dawn mechanism (switch.shadow_control_<x>_d01_steuerung_aktiv
+        but for the fully parallel Dawn mechanism (switch.zimshadow_<x>_d01_steuerung_aktiv
         / _dawn_handling_was_disabled())."""
         manager._dawn_handling_was_disabled = ShadowControlManager._dawn_handling_was_disabled.__get__(manager)
 
@@ -649,7 +649,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         manager.current_shutter_state = ShutterState.NEUTRAL
 
         manager._shadow_config.enabled = False
-        manager._previous_shadow_control_enabled = True
+        manager._previous_zimshadow_enabled = True
 
         await manager.async_calculate_and_apply_cover_position(event=None)
 
@@ -665,7 +665,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         manager.current_shutter_state = ShutterState.SHADOW_HORIZONTAL_NEUTRAL
 
         manager._shadow_config.enabled = True
-        manager._previous_shadow_control_enabled = False
+        manager._previous_zimshadow_enabled = False
 
         await manager.async_calculate_and_apply_cover_position(event=None)
 

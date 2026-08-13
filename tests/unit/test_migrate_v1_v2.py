@@ -7,7 +7,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import async_migrate_entry
+from custom_components.zimshadow import async_migrate_entry
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ class TestMigrationVersion1To2:
             "lock_height_entity": "100",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)
@@ -64,7 +64,7 @@ class TestMigrationVersion1To2:
             "lock_angle_entity": "50",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)
@@ -89,7 +89,7 @@ class TestMigrationVersion1To2:
             "lock_angle_entity": "45",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)
@@ -112,7 +112,7 @@ class TestMigrationVersion1To2:
         """Test that defaults (0) are set when old keys don't exist."""
         config_entry_v1.options = {}
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)
@@ -134,7 +134,7 @@ class TestMigrationVersion1To2:
             "other_option": "keep_me",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)
@@ -154,7 +154,7 @@ class TestMigrationVersion1To2:
             "lock_height_entity": "100",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = MagicMock(side_effect=vol.Invalid("Validation failed"))
 
             result = await async_migrate_entry(mock_hass, config_entry_v1)

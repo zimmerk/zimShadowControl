@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from custom_components.shadow_control.const import DOMAIN, SCInternal, ShutterState
+from custom_components.zimshadow.const import DOMAIN, SCInternal, ShutterState
 from tests.integration.conftest import (
     set_sun_position,
     setup_instance,
@@ -75,7 +75,7 @@ BASE_CONFIG = {
                 "facade_neutral_pos_angle_manual": 0,
                 "enforce_positioning_manual": False,
                 # Shadow: disabled
-                "shadow_control_enabled_manual": False,
+                "zimshadow_enabled_manual": False,
                 "shadow_brightness_threshold_winter_manual": 50000,
                 "shadow_brightness_threshold_summer_manual": 50000,
                 "shadow_brightness_threshold_minimal_manual": 5000,
@@ -124,7 +124,7 @@ async def _set_time_constraint(hass: HomeAssistant, internal_enum: SCInternal, v
     registry = er.async_get(hass)
     entity_id = None
     for entry in registry.entities.values():
-        if entry.platform == "shadow_control" and internal_enum.value in entry.unique_id and INSTANCE.lower() in entry.entity_id.lower():
+        if entry.platform == "zimshadow" and internal_enum.value in entry.unique_id and INSTANCE.lower() in entry.entity_id.lower():
             entity_id = entry.entity_id
             break
 

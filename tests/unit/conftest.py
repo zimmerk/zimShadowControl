@@ -1,4 +1,4 @@
-"""Global fixtures for shadow_control tests."""
+"""Global fixtures for zimshadow tests."""
 
 # ============================================================================
 # WINDOWS COMPATIBILITY: Mock fcntl module
@@ -7,7 +7,7 @@ import logging
 import sys
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.shadow_control import ShadowControlManager
+from custom_components.zimshadow import ShadowControlManager
 
 if sys.platform == "win32":
     sys.modules["fcntl"] = MagicMock()
@@ -20,7 +20,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     DEBUG_ENABLED,
     DOMAIN,
     SC_CONF_NAME,

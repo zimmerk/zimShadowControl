@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import ShutterState
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import ShutterState
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def manager(mock_manager):
 
     # Dependencies specific to this handler
     manager._check_if_facade_is_in_sun = AsyncMock(return_value=True)
-    manager._is_shadow_control_enabled = AsyncMock(return_value=True)
+    manager._is_zimshadow_enabled = AsyncMock(return_value=True)
     manager._get_current_brightness = MagicMock(return_value=10000)
     manager._is_timer_finished = MagicMock(return_value=False)
     manager._position_shutter = AsyncMock()

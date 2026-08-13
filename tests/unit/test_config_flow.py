@@ -7,10 +7,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control.config_flow import (
+from custom_components.zimshadow.config_flow import (
     ShadowControlConfigFlowHandler,
 )
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     DOMAIN,
     SC_CONF_NAME,
     TARGET_COVER_ENTITY,

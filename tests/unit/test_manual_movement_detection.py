@@ -7,8 +7,8 @@ import pytest
 from homeassistant.core import Event
 from homeassistant.util import dt as dt_util
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import ShutterType
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import ShutterType
 
 
 class TestManualMovementDetection:

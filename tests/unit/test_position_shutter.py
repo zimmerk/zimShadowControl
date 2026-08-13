@@ -7,8 +7,8 @@ import pytest
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.util import dt as dt_util
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import (
     LockState,
     ShutterType,
 )
@@ -208,7 +208,7 @@ class TestPositionShutter:
 
     async def test_blocks_physical_output_during_reload_even_if_ha_running(self, manager):
         """Regression test for the "Jalousie faehrt hoch" reload-race incidents (s. Memory
-        shadow_control_jalousien.md, 2026-07-10 ff.): physical output must stay blocked while
+        zimshadow_jalousien.md, 2026-07-10 ff.): physical output must stay blocked while
         restore is incomplete, REGARDLESS of hass.is_running.
 
         This case (_startup_restore_complete=False, hass.is_running=True) is exactly a

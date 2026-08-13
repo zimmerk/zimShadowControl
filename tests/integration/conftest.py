@@ -18,7 +18,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed, async_mock_service
 
-from custom_components.shadow_control.const import DOMAIN, SC_CONF_NAME, SCInternal
+from custom_components.zimshadow.const import DOMAIN, SC_CONF_NAME, SCInternal
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class SelectiveColoredFormatter(ColoredFormatter):
 
     def format(self, record):
         # Wenn der Log aus der Integration kommt, Farben entfernen
-        if "shadow_control" in record.name:
+        if "zimshadow" in record.name:
             neutral_formatter = logging.Formatter(fmt="%(levelname)-8s %(filename)30s: %(lineno)4s %(message)s", datefmt="%H:%M:%S")
             return neutral_formatter.format(record)
 
@@ -299,7 +299,7 @@ def time_travel(hass: HomeAssistant, freezer):
 
 
 async def setup_instance(caplog, hass: HomeAssistant, setup_from_user_config, test_config, time_travel, enforce_positioning=True) -> tuple[Any, Any]:
-    caplog.set_level(logging.DEBUG, logger="custom_components.shadow_control")
+    caplog.set_level(logging.DEBUG, logger="custom_components.zimshadow")
 
     await setup_from_user_config(test_config)
     hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
@@ -720,7 +720,7 @@ def get_internal_entity_id_for_test(hass: HomeAssistant, instance_name: str, int
     for entity in registry.entities.values():
         # Prüfe: richtige Platform, Domain und unique_id enthält den enum value
         if (
-            entity.platform == "shadow_control"
+            entity.platform == "zimshadow"
             and entity.domain == domain
             and internal_enum.value in entity.unique_id
             and instance_name.lower() in entity.entity_id.lower()

@@ -1,10 +1,10 @@
-"""Extended tests for shadow_control __init__."""
+"""Extended tests for zimshadow __init__."""
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control.const import DOMAIN, TARGET_COVER_ENTITY
+from custom_components.zimshadow.const import DOMAIN, TARGET_COVER_ENTITY
 
 
 async def test_entry_setup_with_multiple_covers(hass: HomeAssistant, mock_cover, mock_sun) -> None:

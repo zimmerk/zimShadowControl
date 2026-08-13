@@ -5,7 +5,7 @@ import logging
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control.const import DEPRECATED_CONFIG_KEYS, DOMAIN
+from custom_components.zimshadow.const import DEPRECATED_CONFIG_KEYS, DOMAIN
 from tests.integration.conftest import setup_instance
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def get_base_config():
                     "lock_integration_manual": False,
                     "lock_integration_with_position_manual": False,
                     "enforce_positioning_manual": False,
-                    "shadow_control_enabled_manual": True,
+                    "zimshadow_enabled_manual": True,
                     "shadow_brightness_threshold_winter_manual": 30000,
                     "shadow_brightness_threshold_summer_manual": 70000,
                     "shadow_brightness_threshold_minimal_manual": 5000,
@@ -66,7 +66,7 @@ def get_base_config():
         # v5 Static to Manual
         ("lock_height_static", 50),
         ("lock_angle_static", 45),
-        ("shadow_control_enabled_static", True),
+        ("zimshadow_enabled_static", True),
         ("dawn_control_enabled_static", False),
     ],
 )
@@ -97,7 +97,7 @@ async def test_deprecated_config_key_handling(
     await setup_instance(caplog, hass, setup_from_user_config, test_config, time_travel, enforce_positioning=False)
 
     # Verify integration is running
-    assert hass.data.get("shadow_control_managers") is not None
+    assert hass.data.get("zimshadow_managers") is not None
 
     # Verify warning was logged
     warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
@@ -131,7 +131,7 @@ async def test_multiple_deprecated_keys_in_single_instance(
     await setup_instance(caplog, hass, setup_from_user_config, test_config, time_travel, enforce_positioning=False)
 
     # Verify integration is running
-    assert hass.data.get("shadow_control_managers") is not None
+    assert hass.data.get("zimshadow_managers") is not None
 
     # Verify all three deprecated keys were logged
     warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
@@ -185,7 +185,7 @@ async def test_no_warning_with_only_current_keys(
     await setup_instance(caplog, hass, setup_from_user_config, test_config, time_travel, enforce_positioning=False)
 
     # Verify integration is running
-    assert hass.data.get("shadow_control_managers") is not None
+    assert hass.data.get("zimshadow_managers") is not None
 
     # Verify no deprecation warnings were logged
     warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
@@ -211,7 +211,7 @@ async def test_migration_from_v5_static_to_manual(
     config = get_base_config()
     config[DOMAIN][0]["lock_height_static"] = 50
     config[DOMAIN][0]["lock_angle_static"] = 45
-    config[DOMAIN][0]["shadow_control_enabled_static"] = True
+    config[DOMAIN][0]["zimshadow_enabled_static"] = True
     config[DOMAIN][0]["shadow_after_seconds_static"] = 15
 
     caplog.set_level(logging.WARNING)
@@ -221,7 +221,7 @@ async def test_migration_from_v5_static_to_manual(
     await setup_instance(caplog, hass, setup_from_user_config, test_config, time_travel, enforce_positioning=False)
 
     # Verify integration is running
-    assert hass.data.get("shadow_control_managers") is not None
+    assert hass.data.get("zimshadow_managers") is not None
 
     # Verify warnings for each _static key
     warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]

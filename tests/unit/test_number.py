@@ -1,4 +1,4 @@
-"""Test shadow_control entities."""
+"""Test zimshadow entities."""
 
 from unittest.mock import MagicMock, patch
 
@@ -9,14 +9,14 @@ from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import DOMAIN_DATA_MANAGERS, SCInternal
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import DOMAIN_DATA_MANAGERS, SCInternal
+from custom_components.zimshadow.const import (
     DOMAIN,
     INTERNAL_TO_DEFAULTS_MAP,
     NUMBER_INTERNAL_TO_EXTERNAL_MAP,
 )
-from custom_components.shadow_control.number import ShadowControlNumber
-from custom_components.shadow_control.number import async_setup_entry as number_async_setup_entry
+from custom_components.zimshadow.number import ShadowControlNumber
+from custom_components.zimshadow.number import async_setup_entry as number_async_setup_entry
 
 # --- Fixtures ---
 

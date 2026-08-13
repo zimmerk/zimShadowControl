@@ -114,7 +114,7 @@ def _create_deprecation_notification(
     message += "See the [documentation](https://github.com/starwarsfan/shadow-control) for the current configuration format."
 
     # Create unique notification ID per instance
-    notification_id = "shadow_control_deprecated_config"
+    notification_id = "zimshadow_deprecated_config"
     if instance_name:
         # Sanitize instance name for notification ID
         safe_name = instance_name.lower().replace(" ", "_").replace("-", "_")

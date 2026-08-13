@@ -10,7 +10,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     DEBUG_ENABLED,
     DOMAIN,
     OWN_LOGFILE_ENABLED,
@@ -102,7 +102,7 @@ async def test_logfile_path(
     log_path = Path(handler.baseFilename)
 
     assert log_path.parent == Path(hass.config.config_dir)
-    assert log_path.name == f"shadow_control_{_SANITIZED_NAME}.log"
+    assert log_path.name == f"zimshadow_{_SANITIZED_NAME}.log"
 
     await hass.config_entries.async_unload(entry_with_logfile.entry_id)
     await hass.async_block_till_done()

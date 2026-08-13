@@ -64,7 +64,7 @@
           "facade_elevation_sun_min_static": "Min elevation of the sun, from which the facade will be illuminated. Valid range: 0° to 90°",
           "facade_elevation_sun_max_static": "Max elevation of the sun, up to which the facade will be illuminated. Valid range: 0° to 90°",
           "debug_enabled": "Activate debug logs for this instance",
-          "own_logfile_enabled": "Write all log output for this instance to a dedicated logfile in the HA config directory (shadow_control_NAME.log, max 5 MB × 3 backups)"
+          "own_logfile_enabled": "Write all log output for this instance to a dedicated logfile in the HA config directory (zimshadow_NAME.log, max 5 MB × 3 backups)"
         }
       },
       "facade_settings": {
@@ -145,7 +145,7 @@
         "title": "Configure shadow handling",
         "description": "Configure how to handle brightness",
         "data": {
-          "shadow_control_enabled_entity": "S01 Control enabled",
+          "zimshadow_enabled_entity": "S01 Control enabled",
           "shadow_brightness_threshold_winter_entity": "S02 Winter threshold",
           "shadow_brightness_threshold_summer_entity": "S03 Summer threshold",
           "shadow_brightness_threshold_minimal_entity": "S04 Min brightness threshold",
@@ -159,7 +159,7 @@
           "shadow_angle_after_sun_entity": "S12 Angle after"
         },
         "data_description": {
-          "shadow_control_enabled_entity": "De-/Activate shadow handling entity.",
+          "zimshadow_enabled_entity": "De-/Activate shadow handling entity.",
           "shadow_brightness_threshold_winter_entity": "Brightness threshold within summer, which must be passed to start shadow handling (by entity).",
           "shadow_brightness_threshold_summer_entity": "Brightness threshold within winter, which must be passed to start shadow handling (by entity).",
           "shadow_brightness_threshold_minimal_entity": "Minimal brightness threshold, which defines the lowest point of the sine curve, which is reached at sunrise and sunset.",
@@ -375,7 +375,7 @@
       "facade_neutral_pos_angle_entity": {
         "name": "> Neutral angle"
       },
-      "shadow_control_enabled_entity": {
+      "zimshadow_enabled_entity": {
         "name": "S01 Control enabled"
       },
       "shadow_brightness_threshold_winter_entity": {
@@ -481,7 +481,7 @@
       "own_logfile_enabled": {
         "name": "Write own logfile"
       },
-      "shadow_control_enabled_manual": {
+      "zimshadow_enabled_manual": {
         "name": "S: Control active"
       },
       "dawn_control_enabled_manual": {

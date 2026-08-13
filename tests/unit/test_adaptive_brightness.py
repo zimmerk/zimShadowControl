@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.shadow_control.adaptive_brightness import AdaptiveBrightnessCalculator
+from custom_components.zimshadow.adaptive_brightness import AdaptiveBrightnessCalculator
 
 
 class TestAdaptiveBrightnessCalculatorInit:

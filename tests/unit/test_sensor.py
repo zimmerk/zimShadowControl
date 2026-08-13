@@ -1,4 +1,4 @@
-"""Test shadow_control sensor entities."""
+"""Test zimshadow sensor entities."""
 
 from unittest.mock import MagicMock, patch
 
@@ -8,8 +8,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import DOMAIN_DATA_MANAGERS
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import DOMAIN_DATA_MANAGERS
+from custom_components.zimshadow.const import (
     DOMAIN,
     EXTERNAL_SENSOR_DEFINITIONS,
     SCFacadeConfig2,
@@ -17,11 +17,11 @@ from custom_components.shadow_control.const import (
     ShutterState,
     ShutterType,
 )
-from custom_components.shadow_control.sensor import (
+from custom_components.zimshadow.sensor import (
     ShadowControlExternalEntityValueSensor,
     ShadowControlSensor,
 )
-from custom_components.shadow_control.sensor import async_setup_entry as sensor_async_setup_entry
+from custom_components.zimshadow.sensor import async_setup_entry as sensor_async_setup_entry
 
 
 # --- Helper to "attach" an entity for isolated testing ---

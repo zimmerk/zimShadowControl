@@ -9,7 +9,7 @@
   # Dynamic inputs end
   # =========================================================================
   # Shadow settings
-  s01_shadow_control_enabled:
+  s01_zimshadow_enabled:
     #[e#40 trigger   =Beschattungssteuerung aktiv (0/1)       #init=1      ]
     name: "S01: Shadow control"
     #initial: on

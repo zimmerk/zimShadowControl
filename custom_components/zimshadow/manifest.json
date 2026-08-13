@@ -1,6 +1,6 @@
 {
-  "domain": "shadow_control",
-  "name": "zim Shadow Control (Fork)",
+  "domain": "zimshadow",
+  "name": "zimSHADOW",
   "codeowners": [
     "@zimmerk"
   ],
@@ -12,5 +12,5 @@
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/zimmerk/zimShadowControl/issues",
-  "version": "0.13.0+zimenergy.13"
+  "version": "0.14.0+zimshadow.1"
 }

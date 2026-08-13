@@ -1,11 +1,11 @@
-"""Test shadow_control setup process."""
+"""Test zimshadow setup process."""
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow.const import DOMAIN
 
 
 async def test_setup_entry(hass: HomeAssistant, mock_config_entry, mock_cover, mock_sun) -> None:

@@ -7,8 +7,8 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from custom_components.shadow_control import LockState
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow import LockState
+from custom_components.zimshadow.const import DOMAIN
 from tests.integration.conftest import (
     assert_equal,
     get_actual_cover_position,
@@ -74,8 +74,8 @@ TEST_CONFIG = {
                 # "facade_neutral_pos_angle_entity": input_number.g16_neutral_pos_angle
                 #
                 # Shadow configuration
-                # "shadow_control_enabled_entity":
-                "shadow_control_enabled_manual": True,
+                # "zimshadow_enabled_entity":
+                "zimshadow_enabled_manual": True,
                 # "shadow_brightness_threshold_entity":
                 "shadow_brightness_threshold_winter_manual": 50000,
                 # "shadow_after_seconds_entity":
@@ -442,7 +442,7 @@ async def test_restart_with_closed_cover_dawn_conditions(
     - Nach 90s sollte NICHT automatisch geöffnet werden
     """
 
-    caplog.set_level(logging.DEBUG, logger="custom_components.shadow_control")
+    caplog.set_level(logging.DEBUG, logger="custom_components.zimshadow")
 
     # =========================================================================
     # PHASE 1: Simuliere Zustand VOR dem Restart
@@ -564,7 +564,7 @@ async def test_restart_with_initial_position(
 ):
     """Test Restart mit verschiedenen initialen Positionen."""
 
-    caplog.set_level(logging.DEBUG, logger="custom_components.shadow_control")
+    caplog.set_level(logging.DEBUG, logger="custom_components.zimshadow")
 
     _LOGGER.info("=" * 80)
     _LOGGER.info("Testing Restart mit Position: %s%% (%s)", initial_position, description)

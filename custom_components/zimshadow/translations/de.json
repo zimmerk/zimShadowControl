@@ -64,7 +64,7 @@
           "facade_elevation_sun_min_static": "Minimale Höhe der Sonne in Grad (°), ab welcher die Sonne auf die Fassade scheint. Gültiger Bereich: 0° bis 90°",
           "facade_elevation_sun_max_static": "Maximale Höhe der Sonne in Grad (°), bis zu welcher die Sonne auf die Fassade scheint. Gültiger Bereich: 0° bis 90°",
           "debug_enabled": "Debug-Logs für diese Instanz aktivieren",
-          "own_logfile_enabled": "Alle Log-Ausgaben dieser Instanz zusätzlich in eine eigene Logdatei im HA-Konfigurationsverzeichnis schreiben (shadow_control_NAME.log, max. 5 MB × 3 Backups)"
+          "own_logfile_enabled": "Alle Log-Ausgaben dieser Instanz zusätzlich in eine eigene Logdatei im HA-Konfigurationsverzeichnis schreiben (zimshadow_NAME.log, max. 5 MB × 3 Backups)"
         }
       },
       "facade_settings": {
@@ -145,7 +145,7 @@
         "title": "Beschattung konfigurieren",
         "description": "Konfiguriere wie mit dem Lichteinfall auf der Fassade umgegangen werden soll",
         "data": {
-          "shadow_control_enabled_entity": "B01 Steuerung aktiv",
+          "zimshadow_enabled_entity": "B01 Steuerung aktiv",
           "shadow_brightness_threshold_winter_entity": "B02 Winter Helligkeitsschwellwert",
           "shadow_brightness_threshold_summer_entity": "B03 Sommer Helligkeitsschwellwert",
           "shadow_brightness_threshold_minimal_entity": "B04 Minimaler Helligkeitsschwellwert",
@@ -159,7 +159,7 @@
           "shadow_angle_after_sun_entity": "B12 Winkel nach Beschattung"
         },
         "data_description": {
-          "shadow_control_enabled_entity": "De-/Aktivieren der Beschattungssteuerung (via Entität).",
+          "zimshadow_enabled_entity": "De-/Aktivieren der Beschattungssteuerung (via Entität).",
           "shadow_brightness_threshold_winter_entity": "Schwellwert, nach dessen überschreiten die Beschattung im Winter ausgelöst wird (via Entität).",
           "shadow_brightness_threshold_summer_entity": "Schwellwert, nach dessen überschreiten die Beschattung im Sommer ausgelöst wird (via Entität).",
           "shadow_brightness_threshold_minimal_entity": "Minimaler Schwellwert, welcher bei adaptiver Beschattungssteuerung den tiefsten Punkt der Sinuskurve definiert, welcher bei Sonnenauf- und Sonnenuntergang erreicht wird.",
@@ -375,7 +375,7 @@
       "facade_neutral_pos_angle_entity": {
         "name": "> Neutraler Winkel"
       },
-      "shadow_control_enabled_entity": {
+      "zimshadow_enabled_entity": {
         "name": "B01 Steuerung aktiv"
       },
       "shadow_brightness_threshold_winter_entity": {
@@ -481,7 +481,7 @@
       "own_logfile_enabled": {
         "name": "Eigene Logdatei schreiben"
       },
-      "shadow_control_enabled_manual": {
+      "zimshadow_enabled_manual": {
         "name": "B01 Steuerung aktiv"
       },
       "dawn_control_enabled_manual": {

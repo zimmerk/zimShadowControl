@@ -1,16 +1,16 @@
-"""Test shadow_control binary sensor entities."""
+"""Test zimshadow binary sensor entities."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import DOMAIN_DATA_MANAGERS
-from custom_components.shadow_control.binary_sensor import (
+from custom_components.zimshadow import DOMAIN_DATA_MANAGERS
+from custom_components.zimshadow.binary_sensor import (
     ShadowControlAutoLockBinarySensor,
 )
-from custom_components.shadow_control.binary_sensor import async_setup_entry as binary_sensor_async_setup_entry
-from custom_components.shadow_control.const import DOMAIN, SCInternal
+from custom_components.zimshadow.binary_sensor import async_setup_entry as binary_sensor_async_setup_entry
+from custom_components.zimshadow.const import DOMAIN, SCInternal
 
 
 @pytest.fixture

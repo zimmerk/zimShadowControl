@@ -6,7 +6,7 @@ from itertools import count
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow.const import DOMAIN
 from tests.integration.conftest import get_entity_and_show_state, setup_instance, show_instance_entity_states
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ MINIMAL_CONFIG = {
             "sun_elevation_entity": "input_number.d03_sun_elevation",
             "sun_azimuth_entity": "input_number.d04_sun_azimuth",
             "sc_internal_values": {
-                "shadow_control_enabled_manual": True,
+                "zimshadow_enabled_manual": True,
                 "shadow_brightness_threshold_winter_manual": 15000,
                 "shadow_after_seconds_manual": 10,
             },

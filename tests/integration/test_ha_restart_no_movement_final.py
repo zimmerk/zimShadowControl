@@ -7,7 +7,7 @@ import pytest
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow.const import DOMAIN
 from tests.integration.conftest import (
     get_cover_position,
     set_sun_position,
@@ -59,7 +59,7 @@ TEST_CONFIG = {
                 "enforce_positioning_manual": False,
                 #
                 # Shadow configuration
-                "shadow_control_enabled_manual": True,
+                "zimshadow_enabled_manual": True,
                 "shadow_brightness_threshold_winter_manual": 50000,
                 "shadow_after_seconds_manual": 10,
                 "shadow_shutter_max_height_manual": 100,

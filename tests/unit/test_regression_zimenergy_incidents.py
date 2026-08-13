@@ -1,6 +1,6 @@
 """Regression tests for the zim-ha-config "Jalousie faehrt hoch" incidents.
 
-Background (siehe Memory shadow_control_jalousien.md, Updates 2026-07-10/12/13):
+Background (siehe Memory zimshadow_jalousien.md, Updates 2026-07-10/12/13):
 mehrfach sind Rolladen unerwartet aufgefahren, obwohl alle 13 Hausinstanzen
 auf `movement_restriction_height: only_close` + `shadow_shutter_max_height: 0`
 konfiguriert sind (Hoehe soll strukturell nie ueber 0 hinaus bewegt werden).
@@ -69,8 +69,8 @@ import pytest
 from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.util.dt import UTC
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import LockState, MovementRestricted, ShutterType
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import LockState, MovementRestricted, ShutterType
 
 
 @pytest.mark.asyncio

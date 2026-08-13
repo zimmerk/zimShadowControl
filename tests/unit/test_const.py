@@ -1,6 +1,6 @@
 """Tests for Shadow Control constants."""
 
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     MovementRestricted,
     SCInternal,
     ShutterState,

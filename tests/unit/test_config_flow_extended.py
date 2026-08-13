@@ -1,4 +1,4 @@
-"""Extended tests for shadow_control config flow."""
+"""Extended tests for zimshadow config flow."""
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry

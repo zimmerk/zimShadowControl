@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import ShutterState
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import ShutterState
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def manager(mock_manager):
 
     # Dependencies
     manager._is_dawn_control_enabled = AsyncMock(return_value=True)
-    manager._is_shadow_control_enabled = AsyncMock(return_value=False)
+    manager._is_zimshadow_enabled = AsyncMock(return_value=False)
     manager._get_current_brightness = MagicMock(return_value=5000)
     manager._get_current_dawn_brightness = MagicMock(return_value=50)
     manager._check_if_facade_is_in_sun = AsyncMock(return_value=False)
@@ -85,7 +85,7 @@ class TestHandleStateDawnNeutral:
     async def test_shadow_triggers_when_in_sun(self, manager):
         """Test that shadow mode triggers when facade is in sun and brightness is high."""
         manager._get_current_dawn_brightness.return_value = 50  # Above dawn threshold
-        manager._is_shadow_control_enabled.return_value = True
+        manager._is_zimshadow_enabled.return_value = True
         manager._check_if_facade_is_in_sun.return_value = True
         manager._get_current_brightness.return_value = 60000  # Above shadow threshold
         manager.brightness_threshold = 50000
@@ -137,7 +137,7 @@ class TestHandleStateDawnNeutral:
     async def test_dawn_disabled_shadow_triggers_when_in_sun(self, manager):
         """Test shadow mode when dawn is disabled and facade is in sun."""
         manager._is_dawn_control_enabled.return_value = False
-        manager._is_shadow_control_enabled.return_value = True
+        manager._is_zimshadow_enabled.return_value = True
         manager._check_if_facade_is_in_sun.return_value = True
         manager._get_current_brightness.return_value = 60000
         manager.brightness_threshold = 50000

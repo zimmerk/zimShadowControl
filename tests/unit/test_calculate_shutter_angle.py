@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import ShutterType
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import ShutterType
 
 
 @pytest.fixture

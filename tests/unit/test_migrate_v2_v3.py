@@ -7,8 +7,8 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import async_migrate_entry
-from custom_components.shadow_control.const import SCFacadeConfig2
+from custom_components.zimshadow import async_migrate_entry
+from custom_components.zimshadow.const import SCFacadeConfig2
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ class TestMigrationVersion2To3:
         }
         config_entry_v2.data = {}
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v2)
@@ -72,7 +72,7 @@ class TestMigrationVersion2To3:
             config_entry_v2.options = {shutter_type_key: shutter_type}
             config_entry_v2.data = {}
 
-            with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+            with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
                 mock_schema.return_value = lambda x: x
 
                 result = await async_migrate_entry(mock_hass, config_entry_v2)
@@ -90,7 +90,7 @@ class TestMigrationVersion2To3:
         config_entry_v2.options = {"other_option": "value"}
         config_entry_v2.data = {}
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v2)
@@ -114,7 +114,7 @@ class TestMigrationVersion2To3:
         config_entry_v2.options = {shutter_type_key: "roller_shutter"}
         config_entry_v2.data = {"existing_key": "existing_value"}
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v2)
@@ -140,7 +140,7 @@ class TestMigrationVersion2To3:
             "and_this": 42,
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v2)
@@ -160,7 +160,7 @@ class TestMigrationVersion2To3:
         shutter_type_key = SCFacadeConfig2.SHUTTER_TYPE_STATIC.value
         config_entry_v2.options = {shutter_type_key: "venetian_blind"}
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = MagicMock(side_effect=vol.Invalid("Validation failed"))
 
             result = await async_migrate_entry(mock_hass, config_entry_v2)

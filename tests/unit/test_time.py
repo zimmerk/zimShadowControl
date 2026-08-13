@@ -10,13 +10,13 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     DOMAIN,
     DOMAIN_DATA_MANAGERS,
     INTERNAL_TO_DEFAULTS_MAP,
     SCInternal,
 )
-from custom_components.shadow_control.time import (
+from custom_components.zimshadow.time import (
     ShadowControlTimeEntity,
     async_setup_entry,
 )

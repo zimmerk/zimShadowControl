@@ -42,7 +42,7 @@ def expected_lingering_timers() -> bool:
 def configure_test_logging(caplog):
     """Configure logging for tests."""
     # Nur Shadow Control auf DEBUG
-    caplog.set_level(logging.DEBUG, logger="custom_components.shadow_control")
+    caplog.set_level(logging.DEBUG, logger="custom_components.zimshadow")
 
     # Test Logger auf INFO
     caplog.set_level(logging.INFO, logger="tests")

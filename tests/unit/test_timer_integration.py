@@ -9,8 +9,8 @@ from homeassistant.core import Event, HomeAssistant, State
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import ShadowControlManager
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import (
     DOMAIN,
     DOMAIN_DATA_MANAGERS,
     LockState,
@@ -103,7 +103,7 @@ class TestTimerIntegration:
 
         # Simulate new positioning after 5 seconds
         second_time = first_time + timedelta(seconds=5)
-        with patch("custom_components.shadow_control.datetime") as mock_datetime:
+        with patch("custom_components.zimshadow.datetime") as mock_datetime:
             mock_datetime.now.return_value = second_time
 
             # New positioning
@@ -310,7 +310,7 @@ class TestTimerIntegration:
 
         # Old timer is now irrelevant, new timer is active
         # Simulate time passing
-        with patch("custom_components.shadow_control.datetime") as mock_dt:
+        with patch("custom_components.zimshadow.datetime") as mock_dt:
             mock_dt.now.return_value = second_time + timedelta(seconds=3)
 
             # New timer still running
@@ -893,7 +893,7 @@ class TestTimerIntegration:
         event = Event("state_changed", event_data)
 
         # Need to mock datetime for positioning check
-        with patch("custom_components.shadow_control.datetime") as mock_dt:
+        with patch("custom_components.zimshadow.datetime") as mock_dt:
             mock_dt.now.return_value = second_time + timedelta(seconds=2)
 
             await manager._async_target_cover_entity_state_change_listener(event)
@@ -909,7 +909,7 @@ class TestTimerIntegration:
         new_state.attributes = {"current_position": 100, "current_tilt_position": 0}
         event = Event("state_changed", event_data)
 
-        with patch("custom_components.shadow_control.datetime") as mock_dt:
+        with patch("custom_components.zimshadow.datetime") as mock_dt:
             mock_dt.now.return_value = second_time + timedelta(seconds=5)
 
             await manager._async_target_cover_entity_state_change_listener(event)

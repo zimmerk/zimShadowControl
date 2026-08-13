@@ -3,7 +3,7 @@
 import pytest
 import voluptuous as vol
 
-from custom_components.shadow_control.config_flow import YAML_CONFIG_SCHEMA
+from custom_components.zimshadow.config_flow import YAML_CONFIG_SCHEMA
 
 
 class TestYAMLSchemaValidation:

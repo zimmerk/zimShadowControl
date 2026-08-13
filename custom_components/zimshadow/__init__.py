@@ -192,7 +192,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
     own_logfile_enabled = own_logfile_value.lower() in ("true", "1", "yes", "on") if isinstance(own_logfile_value, str) else bool(own_logfile_value)
 
     if own_logfile_enabled:
-        log_file_path = hass.config.path(f"shadow_control_{sanitized_instance_name}.log")
+        log_file_path = hass.config.path(f"zimshadow_{sanitized_instance_name}.log")
         log_level = instance_specific_logger.level
 
         def _create_file_handler() -> logging.handlers.RotatingFileHandler:
@@ -362,7 +362,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
     # Load platforms (like sensors)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Config-entry-reload race fix (s. Memory shadow_control_jalousien.md, "Jalousie faehrt
+    # Config-entry-reload race fix (s. Memory zimshadow_jalousien.md, "Jalousie faehrt
     # hoch"-Vorfaelle 2026-07-10 ff.): on a reload, Home Assistant is already fully running, so
     # _async_register_listeners() schedules an immediate recalculation task instead of waiting
     # for EVENT_HOMEASSISTANT_STARTED. That task can - and typically does - run before the
@@ -640,7 +640,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             "movement_restriction_angle_static",
             "facade_neutral_pos_height_static",
             "facade_neutral_pos_angle_static",
-            "shadow_control_enabled_static",
+            "zimshadow_enabled_static",
             "shadow_brightness_threshold_static",
             "shadow_after_seconds_static",
             "shadow_shutter_max_height_static",
@@ -930,9 +930,9 @@ class ShadowControlManager:
         # ShadowControlSwitch._notify_integration()), which the `if event:` state_changed
         # detection below can never see. None means "not yet observed" (first call), so the
         # very first evaluation never spuriously triggers a reset.
-        self._previous_shadow_control_enabled: bool | None = None
-        # Same rationale as _previous_shadow_control_enabled above, but for the fully parallel
-        # Dawn mechanism: switch.shadow_control_<x>_d01_steuerung_aktiv is backed by its own
+        self._previous_zimshadow_enabled: bool | None = None
+        # Same rationale as _previous_zimshadow_enabled above, but for the fully parallel
+        # Dawn mechanism: switch.zimshadow_<x>_d01_steuerung_aktiv is backed by its own
         # ShadowControlSwitch instance and independently drives shutter state (DAWN_FULL_CLOSED
         # etc.) via _dawn_config.enabled. Its _notify_integration() also calls this method with
         # event=None, so it needs its own transition tracking.
@@ -1748,11 +1748,11 @@ class ShadowControlManager:
         # self._enforce_position_update = self._get_entity_state_value(SCDynamicInput.ENFORCE_POSITIONING_ENTITY.value, False, bool)
 
         # Shadow Control Inputs
-        shadow_control_enabled_manual = self.get_internal_entity_id(SCInternal.SHADOW_CONTROL_ENABLED_MANUAL)
-        shadow_control_enabled_value = (
-            self._get_internal_entity_state_value(shadow_control_enabled_manual, True, bool) if shadow_control_enabled_manual else True
+        zimshadow_enabled_manual = self.get_internal_entity_id(SCInternal.SHADOW_CONTROL_ENABLED_MANUAL)
+        zimshadow_enabled_value = (
+            self._get_internal_entity_state_value(zimshadow_enabled_manual, True, bool) if zimshadow_enabled_manual else True
         )
-        self._shadow_config.enabled = self._get_entity_state_value(SCShadowInput.CONTROL_ENABLED_ENTITY.value, shadow_control_enabled_value, bool)
+        self._shadow_config.enabled = self._get_entity_state_value(SCShadowInput.CONTROL_ENABLED_ENTITY.value, zimshadow_enabled_value, bool)
 
         # =============================================================
         # Start of shadow brightness threshold calculation
@@ -2179,10 +2179,10 @@ class ShadowControlManager:
         # triggering a false-positive auto-lock. Resetting the positioning-verification
         # bookkeeping whenever enabled actually flips makes the next _check_positioning_completed()
         # call a no-op instead (nothing to compare against).
-        if self._previous_shadow_control_enabled is not None and self._shadow_config.enabled != self._previous_shadow_control_enabled:
+        if self._previous_zimshadow_enabled is not None and self._shadow_config.enabled != self._previous_zimshadow_enabled:
             self.logger.debug(
                 "Shadow control enabled state changed (%s -> %s) - resetting stale positioning-verification bookkeeping",
-                self._previous_shadow_control_enabled,
+                self._previous_zimshadow_enabled,
                 self._shadow_config.enabled,
             )
             self._last_positioning_time = None
@@ -2205,10 +2205,10 @@ class ShadowControlManager:
             # analogous "was_enabled" method for the enable direction either.
             if not self._shadow_config.enabled:
                 await self._shadow_handling_was_disabled()
-        self._previous_shadow_control_enabled = self._shadow_config.enabled
+        self._previous_zimshadow_enabled = self._shadow_config.enabled
 
         # Mirror the above for Dawn (see _previous_dawn_control_enabled comment in __init__):
-        # switch.shadow_control_<x>_d01_steuerung_aktiv is a separate ShadowControlSwitch
+        # switch.zimshadow_<x>_d01_steuerung_aktiv is a separate ShadowControlSwitch
         # instance whose _notify_integration() also calls this method with event=None, and
         # _dawn_config.enabled independently drives shutter state (DAWN_FULL_CLOSED etc.), so
         # it needs the identical stale-bookkeeping reset on its own enable/disable transitions.
@@ -2391,7 +2391,7 @@ class ShadowControlManager:
                         # see *at that instant* (often still fallback defaults, see the Phase 2.5 comment in
                         # _position_shutter) and, on a mismatch against the forced lock position, sets
                         # _enforce_position_update = True - which deliberately BYPASSES the only_close/
-                        # only_open ratchet (see packages/shadow_control.yaml's own "War 100 -> verursachte
+                        # only_open ratchet (see packages/zimshadow.yaml's own "War 100 -> verursachte
                         # das Restart-Hochfahren (Enforce umgeht only_close)" comment, a 2026-06-28 fix for
                         # the same symptom via a different avenue). The "enabled" branch has the identical
                         # unconditional _enforce_position_update = True. Live-confirmed 2026-07-23: wz_west
@@ -3387,7 +3387,7 @@ class ShadowControlManager:
     # State SHADOW_FULL_CLOSE_TIMER_RUNNING
     async def _handle_state_shadow_full_close_timer_running(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_FULL_CLOSE_TIMER_RUNNING")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._dynamic_config.brightness
             shadow_threshold_close = self.brightness_threshold
             if current_brightness is not None and shadow_threshold_close is not None and current_brightness > shadow_threshold_close:
@@ -3461,7 +3461,7 @@ class ShadowControlManager:
     # State SHADOW_FULL_CLOSED
     async def _handle_state_shadow_full_closed(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_FULL_CLOSED")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
             shadow_open_slat_delay = self._shadow_config.shutter_look_through_seconds
@@ -3525,7 +3525,7 @@ class ShadowControlManager:
     # State SHADOW_HORIZONTAL_NEUTRAL_TIMER_RUNNING
     async def _handle_state_shadow_horizontal_neutral_timer_running(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_HORIZONTAL_NEUTRAL_TIMER_RUNNING")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
             shadow_open_slat_angle = self._shadow_config.shutter_look_through_angle
@@ -3604,7 +3604,7 @@ class ShadowControlManager:
     # State SHADOW_HORIZONTAL_NEUTRAL
     async def _handle_state_shadow_horizontal_neutral(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_HORIZONTAL_NEUTRAL")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
             shadow_open_shutter_delay = self._shadow_config.shutter_open_seconds
@@ -3686,7 +3686,7 @@ class ShadowControlManager:
     # State SHADOW_NEUTRAL_TIMER_RUNNING
     async def _handle_state_shadow_neutral_timer_running(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_NEUTRAL_TIMER_RUNNING")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
             height_after_shadow = self._shadow_config.height_after_sun
@@ -3760,7 +3760,7 @@ class ShadowControlManager:
     # State SHADOW_NEUTRAL
     async def _handle_state_shadow_neutral(self) -> ShutterState:
         self.logger.debug("Handle SHADOW_NEUTRAL")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
             dawn_handling_active = self._dawn_config.enabled
@@ -3879,7 +3879,7 @@ class ShadowControlManager:
     # State NEUTRAL
     async def _handle_state_neutral(self) -> ShutterState:
         self.logger.debug("Handle NEUTRAL")
-        if await self._check_if_facade_is_in_sun() and await self._is_shadow_control_enabled():
+        if await self._check_if_facade_is_in_sun() and await self._is_zimshadow_enabled():
             self.logger.debug("self._check_if_facade_is_in_sun and self._is_shadow_handling_activated")
             current_brightness = self._get_current_brightness()
             shadow_threshold_close = self.brightness_threshold
@@ -3947,7 +3947,7 @@ class ShadowControlManager:
         self.logger.debug("Handle DAWN_NEUTRAL")
         current_brightness = self._get_current_brightness()
 
-        shadow_handling_active = await self._is_shadow_control_enabled()
+        shadow_handling_active = await self._is_zimshadow_enabled()
         shadow_threshold_close = self.brightness_threshold
         shadow_close_delay = self._shadow_config.after_seconds
 
@@ -4470,7 +4470,7 @@ class ShadowControlManager:
     # End of state handling
     # #######################################################################
 
-    async def _is_shadow_control_enabled(self) -> bool:
+    async def _is_zimshadow_enabled(self) -> bool:
         """Check if shadow handling is activated."""
         return self._shadow_config.enabled
 
@@ -5135,7 +5135,7 @@ class ShadowControlManager:
         """Get the internal entity_id for this instance."""
         registry = entity_registry.async_get(self.hass)
         unique_id = f"{self._entry_id}_{internal_enum.value}"
-        entity_id = registry.async_get_entity_id(internal_enum.domain, "shadow_control", unique_id)
+        entity_id = registry.async_get_entity_id(internal_enum.domain, "zimshadow", unique_id)
         # self.logger.debug("Looking up internal entity_id for unique_id: %s -> %s", unique_id, entity_id)
         return entity_id  # noqa: RET504
 

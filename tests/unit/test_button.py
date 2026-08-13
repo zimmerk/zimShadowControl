@@ -1,4 +1,4 @@
-"""Test shadow_control entities."""
+"""Test zimshadow entities."""
 
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
@@ -7,10 +7,10 @@ from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import DOMAIN_DATA_MANAGERS, SCInternal
-from custom_components.shadow_control.button import ShadowControlButton
-from custom_components.shadow_control.button import async_setup_entry as button_async_setup_entry
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow import DOMAIN_DATA_MANAGERS, SCInternal
+from custom_components.zimshadow.button import ShadowControlButton
+from custom_components.zimshadow.button import async_setup_entry as button_async_setup_entry
+from custom_components.zimshadow.const import DOMAIN
 
 
 class TestButtonEntity:

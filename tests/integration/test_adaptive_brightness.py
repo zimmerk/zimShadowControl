@@ -5,7 +5,7 @@ from itertools import count
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control.const import DOMAIN
+from custom_components.zimshadow.const import DOMAIN
 from tests.integration.conftest import (
     setup_instance,
     show_instance_entity_states,
@@ -56,7 +56,7 @@ BASE_CONFIG = {
                 "enforce_positioning_manual": False,  # Create button entity
                 #
                 # Shadow configuration with adaptive brightness
-                "shadow_control_enabled_manual": True,
+                "zimshadow_enabled_manual": True,
                 "shadow_brightness_threshold_winter_manual": 30000,
                 "shadow_brightness_threshold_summer_manual": 70000,
                 "shadow_brightness_threshold_minimal_manual": 5000,
@@ -254,7 +254,7 @@ async def test_adaptive_brightness_with_dawn_protection(
                     "lock_integration_with_position_manual": False,
                     "enforce_positioning_manual": False,
                     # Shadow configuration with LOW winter threshold
-                    "shadow_control_enabled_manual": True,
+                    "zimshadow_enabled_manual": True,
                     "shadow_brightness_threshold_winter_manual": 30000,  # Low
                     "shadow_brightness_threshold_summer_manual": 50000,
                     "shadow_brightness_threshold_minimal_manual": 1000,  # Very low
@@ -338,7 +338,7 @@ async def test_adaptive_brightness_no_dawn_uses_minimal_shadow_threshold(
                     "lock_integration_with_position_manual": False,
                     "enforce_positioning_manual": False,
                     # Shadow configuration
-                    "shadow_control_enabled_manual": True,
+                    "zimshadow_enabled_manual": True,
                     "shadow_brightness_threshold_winter_manual": 30000,
                     "shadow_brightness_threshold_summer_manual": 50000,
                     "shadow_brightness_threshold_minimal_manual": 1000,

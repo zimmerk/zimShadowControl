@@ -1,7 +1,7 @@
 """Integration regression test: shadow_shutter_max_height 'sticky default' on entity unavailability.
 
 Hintergrund (siehe tests/unit/test_regression_zimenergy_incidents.py fuer den vollen Kontext und
-Memory shadow_control_jalousien.md): _calculate_shutter_height() gibt bei light_strip_width==0
+Memory zimshadow_jalousien.md): _calculate_shutter_height() gibt bei light_strip_width==0
 _shadow_config.shutter_max_height direkt zurueck. Dieser Wert wurde in _update_input_values()
 bislang bei unavailable werdender shadow_shutter_max_height_manual-Entity (z.B. waehrend eines
 Config-Entry-Reload-Race) durch den hartkodierten Upstream-Default
@@ -22,8 +22,8 @@ import pytest
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import ShutterState
-from custom_components.shadow_control.const import DOMAIN, SCInternal
+from custom_components.zimshadow import ShutterState
+from custom_components.zimshadow.const import DOMAIN, SCInternal
 from tests.integration.conftest import (
     get_cover_position,
     get_internal_entity_id_for_test,
@@ -84,7 +84,7 @@ TEST_CONFIG = {
                 "enforce_positioning_manual": False,
                 #
                 # Shadow configuration
-                "shadow_control_enabled_manual": True,
+                "zimshadow_enabled_manual": True,
                 "shadow_brightness_threshold_winter_manual": 50000,
                 "shadow_after_seconds_manual": 10,
                 "shadow_shutter_max_height_manual": 0,  # echte Haus-Konfiguration (nicht der Upstream-Default 100!)

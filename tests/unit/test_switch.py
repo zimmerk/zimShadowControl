@@ -1,4 +1,4 @@
-"""Test shadow_control switch entities."""
+"""Test zimshadow switch entities."""
 
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,18 +7,18 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.shadow_control import DOMAIN_DATA_MANAGERS
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import DOMAIN_DATA_MANAGERS
+from custom_components.zimshadow.const import (
     DEBUG_ENABLED,
     DOMAIN,
     SWITCH_INTERNAL_TO_EXTERNAL_MAP,
     SCInternal,
 )
-from custom_components.shadow_control.switch import (
+from custom_components.zimshadow.switch import (
     ShadowControlConfigSwitch,
     ShadowControlSwitch,
 )
-from custom_components.shadow_control.switch import async_setup_entry as switch_async_setup_entry
+from custom_components.zimshadow.switch import async_setup_entry as switch_async_setup_entry
 
 
 def setup_test_entity(entity, hass, entity_id):

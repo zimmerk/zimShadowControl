@@ -1,6 +1,6 @@
-"""Constants for shadow_control tests."""
+"""Constants for zimshadow tests."""
 
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow.const import (
     DEBUG_ENABLED,
     SC_CONF_COVERS,
     SC_CONF_NAME,

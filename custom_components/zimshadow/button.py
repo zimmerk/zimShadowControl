@@ -111,7 +111,7 @@ class ShadowControlButton(ButtonEntity):
             await manager.async_unlock_integration()
 
         # 2. You can also notify Home Assistant of the event
-        # self.hass.bus.async_fire("shadow_control_button_pressed", {"entity_id": self.entity_id})
+        # self.hass.bus.async_fire("zimshadow_button_pressed", {"entity_id": self.entity_id})
 
         # Important: Since it's a ButtonEntity, you **do not** need to call
         # self.async_write_ha_state(). There is no state change to record.

@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control.config_validation import (
+from custom_components.zimshadow.config_validation import (
     validate_and_warn_deprecated_config,
 )
-from custom_components.shadow_control.const import DEPRECATED_CONFIG_KEYS
+from custom_components.zimshadow.const import DEPRECATED_CONFIG_KEYS
 
 
 @pytest.fixture

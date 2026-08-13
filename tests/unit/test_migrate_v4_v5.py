@@ -7,8 +7,8 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import async_migrate_entry
-from custom_components.shadow_control.const import (
+from custom_components.zimshadow import async_migrate_entry
+from custom_components.zimshadow.const import (
     VERSION,
     SCShadowInput,
 )
@@ -45,7 +45,7 @@ class TestMigrationVersion4:
             "shadow_brightness_threshold_entity": "50000",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x  # Pass-through validator
 
             result = await async_migrate_entry(mock_hass, config_entry_v4)
@@ -81,7 +81,7 @@ class TestMigrationVersion4:
             "another_option": 42,
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v4)
@@ -105,7 +105,7 @@ class TestMigrationVersion4:
             "lock_angle_static": "50",  # Should be removed
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             mock_schema.return_value = lambda x: x
 
             result = await async_migrate_entry(mock_hass, config_entry_v4)
@@ -125,7 +125,7 @@ class TestMigrationVersion4:
             "shadow_brightness_threshold_entity": "50000",
         }
 
-        with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+        with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
             # Simulate validation failure
             mock_schema.return_value = MagicMock(side_effect=vol.Invalid("Validation failed"))
 
@@ -146,7 +146,7 @@ class TestMigrationVersion4:
                 "shadow_brightness_threshold_entity": test_value,
             }
 
-            with patch("custom_components.shadow_control.get_full_options_schema") as mock_schema:
+            with patch("custom_components.zimshadow.get_full_options_schema") as mock_schema:
                 mock_schema.return_value = lambda x: x
 
                 result = await async_migrate_entry(mock_hass, config_entry_v4)

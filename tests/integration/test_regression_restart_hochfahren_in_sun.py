@@ -2,7 +2,7 @@
 
 Live-Vorfaelle: 2026-07-10, -12, -13, -14, -16 (zuletzt: Neustart-Test fuer die
 zimENERGY-Migration, 7 von 13 Jalousien-Instanzen betroffen, s. Commit-Historie
-packages/shadow_control.yaml). Nur Fassaden, die zum Neustart-Zeitpunkt "in der
+packages/zimshadow.yaml). Nur Fassaden, die zum Neustart-Zeitpunkt "in der
 Sonne" stehen, sind betroffen.
 
 Root Cause: Bei jeder frischen Manager-Konstruktion (echter Neustart, nicht nur
@@ -44,8 +44,8 @@ import logging
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.shadow_control import ShutterState
-from custom_components.shadow_control.const import DOMAIN, DOMAIN_DATA_MANAGERS
+from custom_components.zimshadow import ShutterState
+from custom_components.zimshadow.const import DOMAIN, DOMAIN_DATA_MANAGERS
 from tests.integration.conftest import (
     get_cover_position,
     set_sun_position,
@@ -87,18 +87,18 @@ TEST_CONFIG = {
                 "lock_integration_with_position_manual": False,
                 "lock_height_manual": 50,
                 "lock_angle_manual": 50,
-                # Produktions-Default (s. packages/shadow_control.yaml), NICHT
+                # Produktions-Default (s. packages/zimshadow.yaml), NICHT
                 # no_restriction wie in test_ha_restart_no_movement_final.py.
                 "movement_restriction_height_manual": "only_close",
                 "movement_restriction_angle_manual": "only_close",
                 "facade_neutral_pos_height_manual": 0,
                 "facade_neutral_pos_angle_manual": 0,
                 "enforce_positioning_manual": False,
-                "shadow_control_enabled_manual": True,
+                "zimshadow_enabled_manual": True,
                 "shadow_brightness_threshold_winter_manual": 50000,
                 "shadow_after_seconds_manual": 10,
                 # Wie in Produktion: Hoehe strukturell immer unten (nur der
-                # Winkel beschattet), s. packages/shadow_control.yaml.
+                # Winkel beschattet), s. packages/zimshadow.yaml.
                 "shadow_shutter_max_height_manual": 0,
                 "shadow_shutter_max_angle_manual": 90,
                 "shadow_shutter_look_through_seconds_manual": 10,

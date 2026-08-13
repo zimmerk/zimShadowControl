@@ -1,4 +1,4 @@
-"""Test shadow_control entities."""
+"""Test zimshadow entities."""
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry

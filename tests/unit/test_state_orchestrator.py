@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.shadow_control.const import ShutterState
+from custom_components.zimshadow.const import ShutterState
 
 
 @pytest.mark.asyncio
