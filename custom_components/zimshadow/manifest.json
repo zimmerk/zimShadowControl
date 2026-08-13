@@ -15,5 +15,5 @@
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/zimmerk/zimShadowControl/issues",
-  "version": "0.14.0+zimshadow.2"
+  "version": "0.14.0+zimshadow.3"
 }

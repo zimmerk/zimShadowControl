@@ -69,3 +69,49 @@ async def test_gar_kein_cover_konfiguriert_bleibt_warnung(manager):
 
     assert await manager._get_current_cover_position() == (0.0, 0.0)
     manager.logger.warning.assert_called_once()
+
+
+# ── Azimut-Rueckfall ────────────────────────────────────────────────────────
+#
+# ⚠️ Anders als beim fehlenden Cover ist das hier NICHT zeitabhaengig: Der
+# Rueckfall greift, sobald die Sonne die Fassade streift — bei den
+# Nordfassaden jeden Abend. Eine Bindung an den Anlauf haette nichts bewirkt.
+# Unterschieden wird stattdessen nach Ausgang: der vorgesehene Rueckfall ist
+# `debug`, sein Scheitern bleibt `warning`.
+
+import math
+
+
+def _winkel_manager(slat_width, slat_distance, elevation, azimuth, facade_azimuth):
+    """Manager-Attrappe fuer _calculate_shutter_angle."""
+    m = MagicMock()
+    m.logger = MagicMock()
+    m._facade_config.slat_width = slat_width
+    m._facade_config.slat_distance = slat_distance
+    m._facade_config.slat_angle_offset = 0
+    m._facade_config.slat_min_angle = 0
+    m._facade_config.azimuth = facade_azimuth
+    m._shadow_config.shutter_max_angle = 100
+    m._dynamic_config.sun_elevation = elevation
+    m._dynamic_config.sun_azimuth = azimuth
+    m._effective_elevation = math.degrees(
+        math.atan(math.tan(math.radians(elevation)) / max(1e-9, math.cos(math.radians(abs(azimuth - facade_azimuth)))))
+    )
+    m._handle_shutter_angle_stepping.side_effect = lambda v: v
+    m._calculate_shutter_angle = ShadowControlManager._calculate_shutter_angle.__get__(m)
+    return m
+
+
+def test_azimut_rueckfall_ist_nur_debug():
+    """Streifende Sonne: vorgesehener Rueckfall, keine Warnung."""
+    from custom_components.zimshadow.const import ShutterType
+
+    m = _winkel_manager(95.0, 67.0, elevation=5.0, azimuth=290.0, facade_azimuth=345.0)
+    m._facade_config.shutter_type = ShutterType.MODE1
+    m._calculate_shutter_angle()
+
+    meldungen = [str(c) for c in m.logger.debug.call_args_list]
+    assert any("impossible geometry" in t for t in meldungen), "Rueckfall muss protokolliert werden"
+    assert not any("impossible geometry" in str(c) for c in m.logger.warning.call_args_list), (
+        "der vorgesehene Rueckfall darf keine Warnung sein"
+    )

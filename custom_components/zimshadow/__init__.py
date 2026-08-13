@@ -3278,7 +3278,20 @@ class ShadowControlManager:
         # Check if azimuth correction leads to impossible geometry (asin_arg > 1.0)
         # This happens when effective_slat_width < slat_distance due to oblique sun angle
         if asin_arg > 1.0:
-            self.logger.warning(
+            # ⚠️ DEBUG, NICHT WARNING (2026-08-13): Das ist der VORGESEHENE
+            # Rueckfall, kein Fehler. Er greift, sobald die Sonne die Fassade
+            # streift — bei grossem Relativazimut schrumpft die wirksame
+            # Lamellenbreite unter den Lamellenabstand, und die Formel hat
+            # keine Loesung. Die naechsten Zeilen rechnen dann ohne
+            # Azimutkorrektur weiter, was genau richtig ist.
+            #
+            # Das passiert TAEGLICH: Am 2026-08-13 um 19:29 gleichzeitig auf
+            # bad_nord, flur und flur_2, als die Abendsonne die Nordseite
+            # streifte (38,5 mm wirksam gegen 67 mm Abstand). Als Warnung
+            # gemeldet verdeckt es den Fall, auf den es ankommt — dass auch der
+            # Rueckfall scheitert. Der steht unmittelbar darunter und bleibt
+            # deshalb eine Warnung.
+            self.logger.debug(
                 "Azimuth correction leads to impossible geometry (asin_arg=%.3f, "
                 "effective_slat_width=%smm < slat_distance=%smm). "
                 "Falling back to original slat width without azimuth correction.",
