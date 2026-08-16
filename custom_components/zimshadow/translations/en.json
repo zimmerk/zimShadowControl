@@ -13,9 +13,9 @@
           "sun_azimuth_entity": "Sun azimuth"
         },
         "data_description": {
-          "name": "A descriptive and unique name for this Shadow Control (SC) instance",
+          "name": "A descriptive and unique name for this zimSHADOW instance",
           "facade_shutter_type_static": "Choose shutter type",
-          "target_cover_entity": "Covers which should be handled by this Shadow Control (SC) instance",
+          "target_cover_entity": "Covers which should be handled by this zimSHADOW instance",
           "facade_azimuth_static": "Azimuth of the facade in degrees in direction from the inside to the outside. Valid range: 0° to 359°",
           "brightness_entity": "Current brightness, usually from a weather station",
           "sun_elevation_entity": "Elevation of the sun, usually from sun entity or a weather station.",
@@ -24,7 +24,7 @@
       },
       "options": {
         "title": "Configurable options",
-        "description": "All configurable options of this SC instance"
+        "description": "All configurable options of this zimSHADOW instance"
       }
     },
     "error": {
@@ -43,7 +43,7 @@
   "options": {
     "step": {
       "user": {
-        "description": "Configure the first part of the details for the facade (or even the window), which should be handled by this SC instance",
+        "description": "Configure the first part of the details for the facade (or even the window), which should be handled by this zimSHADOW instance",
         "data": {
           "name": "Instance name",
           "target_cover_entity": "Cover to maintain",
@@ -56,8 +56,8 @@
           "own_logfile_enabled": "Own logfile"
         },
         "data_description": {
-          "name": "A descriptive and unique name for this Shadow Control (SC) instance",
-          "target_cover_entity": "Cover which should be handled by this Shadow Control (SC) instance",
+          "name": "A descriptive and unique name for this zimSHADOW instance",
+          "target_cover_entity": "Cover which should be handled by this zimSHADOW instance",
           "facade_azimuth_static": "Azimuth of the facade in degrees in direction from the inside to the outside. Valid range: 0° to 359°",
           "facade_offset_sun_in_static": "Angle from which the facade in comparison to the given azimuth, will be illuminated. Valid range: -90° to 0°",
           "facade_offset_sun_out_static": "Angle up to which the facade in comparison to the given azimuth, will be illuminated. Valid range: 0° to 90°",
@@ -69,7 +69,7 @@
       },
       "facade_settings": {
         "title": "Facade configuration - part 2",
-        "description": "Configure the second part of the details for the facade (or even the window), which should be handled by this SC instance",
+        "description": "Configure the second part of the details for the facade (or even the window), which should be handled by this zimSHADOW instance",
         "data": {
           "facade_neutral_pos_height_entity": "Neutral position height",
           "facade_neutral_pos_angle_entity": "Neutral position angle",
@@ -207,7 +207,7 @@
       },
       "options": {
         "title": "Configurable options",
-        "description": "All configurable options of this SC instance"
+        "description": "All configurable options of this zimSHADOW instance"
       }
     },
     "error": {
