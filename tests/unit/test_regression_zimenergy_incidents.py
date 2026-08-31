@@ -182,6 +182,7 @@ class TestEnforcePositioningAfterStaleTracking:
         # bereits geschlossen (z.B. durch die Normalzustand-Szene).
         instance._previous_shutter_height = None
         instance._previous_shutter_angle = None
+        instance._last_sent_angle = None
 
         instance._dynamic_config.movement_restriction_height = MovementRestricted.ONLY_CLOSE
         instance._dynamic_config.movement_restriction_angle = MovementRestricted.NO_RESTRICTION
@@ -279,6 +280,7 @@ class TestReloadRaceStartupRestoreComplete:
         # Mechanismus #3 (hass.is_running-Ausnahme) zu isolieren.
         instance._previous_shutter_height = 0.0
         instance._previous_shutter_angle = 0.0
+        instance._last_sent_angle = 0.0
 
         instance._timer = None
         instance._last_positioning_time = None

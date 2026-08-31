@@ -40,6 +40,7 @@ from .adaptive_brightness import AdaptiveBrightnessCalculator
 from .config_flow import YAML_CONFIG_SCHEMA, get_full_options_schema
 from .config_validation import validate_and_warn_deprecated_config
 from .const import (
+    ANGLE_HYSTERESIS_PERCENT,
     DEBUG_ENABLED,
     DOMAIN,
     DOMAIN_DATA_MANAGERS,
@@ -917,6 +918,13 @@ class ShadowControlManager:
         self._effective_elevation: float | None = None
         self._previous_shutter_height: float | None = None
         self._previous_shutter_angle: float | None = None
+        # Der zuletzt WIRKLICH an den Behang gesendete Winkel. Eigener Merker,
+        # weil `_previous_shutter_angle` jeden Tick nachgezogen wird, auch wenn
+        # kein Befehl rausging — die Winkelhysterese muss aber gegen den
+        # tatsaechlichen Stand messen, sonst summiert sie sich weg:
+        # 100 -> 90 (unterdrueckt) -> 75 waere sonst zweimal "nur 15",
+        # obwohl der Behang in Wahrheit 25 Punkte hinterherhinkt.
+        self._last_sent_angle: float | None = None
         self._is_initial_run: bool = True  # Flag for initial integration run
         self.is_in_sun: bool = False
         self.next_modification_timestamp: datetime | None = None
@@ -3006,8 +3014,29 @@ class ShadowControlManager:
         )
 
         # Send angle command if the angle changed OR if height changed significantly
+        #
+        # ⚠️ WINKELHYSTERESE (zim, 31.08.2026): "Die Nachbarn klagen ueber zu
+        # viele Jalousiebewegungen." Die Zeitfilter (b05/b08/b10, seit 30.08.
+        # auf 480/1200 s) haben das Wolken-Zappeln beseitigt — messbar: null
+        # Rueckkehr-zum-Ausgangswert am 31.08. gegenueber dem beherrschenden
+        # Muster davor. Was blieb, ist die Nachfuehrung an den Sonnenstand in
+        # 15-Punkte-Schritten alle 17-25 Minuten; dagegen sind Zeitfilter
+        # machtlos, weil die Abstaende laengst darueber liegen.
+        #
+        # Gemessen am 31.08. (Vormittag, nach der Zeitdaempfung):
+        #     Schwelle  10 Pkt ->  8 % weniger Fahrten
+        #               15 Pkt -> 33 %      <- gewaehlt, danach wird es flach
+        #               30 Pkt -> 39 %
+        # An den Daten VOR der Zeitdaempfung haette dieselbe Schwelle nur 10 %
+        # gebracht — die Hysterese wirkt erst, seit das Zappeln weg ist. Beide
+        # Hebel ergaenzen sich, keiner ersetzt den anderen.
+        #
+        # Der Preis ist eine groebere Nachfuehrung: statt 60 -> 75 -> 90 faehrt
+        # der Behang einmal 60 -> 90. Fuer den Blendschutz ist das unerheblich,
+        # zumal die Mechanik unter rund 12 Punkten ohnehin nicht anspricht.
+        angle_reference = self._last_sent_angle if self._last_sent_angle is not None else self._previous_shutter_angle
         send_angle_command = (
-            abs(self.used_shutter_angle - self._previous_shutter_angle) > 0.001 if self._previous_shutter_angle is not None else True
+            abs(self.used_shutter_angle - angle_reference) > ANGLE_HYSTERESIS_PERCENT if angle_reference is not None else True
         ) or height_calculated_different_from_previous
 
         if self._enforce_position_update:
@@ -3075,6 +3104,8 @@ class ShadowControlManager:
 
         self._previous_shutter_height = self.used_shutter_height
         self._previous_shutter_angle = self.used_shutter_angle
+        if send_angle_command:
+            self._last_sent_angle = self.used_shutter_angle
         self.used_shutter_angle_degrees = self._convert_shutter_angle_percent_to_degrees(self.used_shutter_angle)
 
         # Always update HA state at the end to reflect the latest internal calculated values and attributes

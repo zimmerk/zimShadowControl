@@ -40,6 +40,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         instance._enforce_position_update = False
         instance._previous_shutter_height = 50.0
         instance._previous_shutter_angle = 45.0
+        instance._last_sent_angle = 45.0
         instance._height_during_lock_state = 50.0
         instance._angle_during_lock_state = 45.0
 
@@ -218,6 +219,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
 
         manager._previous_shutter_height = 60.0
         manager._previous_shutter_angle = 50.0
+        manager._last_sent_angle = 50.0
 
         event = Event(
             "state_changed",
@@ -280,6 +282,7 @@ class TestAsyncCalculateAndApplyCoverPosition:
         manager._dynamic_config.lock_angle = 30.0
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         lock_entity = "switch.lock_with_position"
 

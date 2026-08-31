@@ -41,6 +41,7 @@ class TestUnlockIntegration:
         instance._angle_during_lock_state = None
         instance._previous_shutter_height = None
         instance._previous_shutter_angle = None
+        instance._last_sent_angle = None
         instance._last_calculated_height = None
         instance._last_calculated_angle = None
         instance._last_unlock_time = None

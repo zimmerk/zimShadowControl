@@ -41,6 +41,7 @@ class TestPositionShutter:
         # Previous values
         instance._previous_shutter_height = 50.0
         instance._previous_shutter_angle = 40.0
+        instance._last_sent_angle = 40.0
 
         # Tracking
         instance._timer = None
@@ -154,6 +155,7 @@ class TestPositionShutter:
         """
         manager._previous_shutter_height = None
         manager._previous_shutter_angle = None
+        manager._last_sent_angle = None
         manager._is_initial_run = True
         manager._get_current_cover_position = AsyncMock(return_value=(100.0, 50.0))
 
@@ -175,6 +177,7 @@ class TestPositionShutter:
         initial-run window until a real (non-initial-run) positioning call happens."""
         manager._previous_shutter_height = None
         manager._previous_shutter_angle = None
+        manager._last_sent_angle = None
         manager._is_initial_run = True
         manager._get_current_cover_position = AsyncMock(return_value=(100.0, 50.0))
 
@@ -230,6 +233,7 @@ class TestPositionShutter:
         manager.current_lock_state = LockState.UNLOCKED
         manager._previous_shutter_height = 0.0
         manager._previous_shutter_angle = 0.0
+        manager._last_sent_angle = 0.0
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
@@ -245,6 +249,7 @@ class TestPositionShutter:
         manager.current_lock_state = LockState.UNLOCKED
         manager._previous_shutter_height = 0.0
         manager._previous_shutter_angle = 0.0
+        manager._last_sent_angle = 0.0
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
@@ -295,6 +300,7 @@ class TestPositionShutter:
         manager.current_lock_state = LockState.UNLOCKED
         manager._previous_shutter_height = 50.0  # Different from target
         manager._previous_shutter_angle = 40.0  # Different from target
+        manager._last_sent_angle = 40.0  # Different from target
 
         # Mock to ensure both commands are sent
         manager.used_shutter_height = 80.0
@@ -321,6 +327,7 @@ class TestPositionShutter:
         manager.current_lock_state = LockState.UNLOCKED
         manager._previous_shutter_height = 80.0  # Same as target
         manager._previous_shutter_angle = 45.0  # Same as target
+        manager._last_sent_angle = 45.0  # Same as target
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
@@ -338,6 +345,7 @@ class TestPositionShutter:
         manager._facade_config.shutter_type = ShutterType.MODE3
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 40.0
+        manager._last_sent_angle = 40.0
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
@@ -358,6 +366,7 @@ class TestPositionShutter:
         manager.current_lock_state = LockState.UNLOCKED
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 40.0
+        manager._last_sent_angle = 40.0
 
         await manager._position_shutter(80.0, 45.0, stop_timer=False)
 
@@ -395,6 +404,7 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0000
         manager._previous_shutter_angle = 45.0000
+        manager._last_sent_angle = 45.0000
 
         # Call with MINIMAL change (0.0005% < 0.001%)
         await manager._position_shutter(50.0005, 45.0005, stop_timer=False)
@@ -411,6 +421,7 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0000
         manager._previous_shutter_angle = 45.0000
+        manager._last_sent_angle = 45.0000
 
         # Call with EXACT boundary (0.001%)
         await manager._position_shutter(50.0010, 45.0010, stop_timer=False)
@@ -428,6 +439,7 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0000
         manager._previous_shutter_angle = 45.0000
+        manager._last_sent_angle = 45.0000
 
         # Call with change ABOVE threshold (0.002% > 0.001%)
         await manager._position_shutter(50.0020, 45.0020, stop_timer=False)
@@ -455,6 +467,7 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with LARGE change (1.0%)
         await manager._position_shutter(51.0, 46.0, stop_timer=False)
@@ -471,6 +484,7 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with ONLY height change
         await manager._position_shutter(51.0, 45.0, stop_timer=False)
@@ -487,9 +501,15 @@ class TestPositionShutter:
         # Set previous position
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with ONLY angle change
-        await manager._position_shutter(50.0, 46.0, stop_timer=False)
+        # ⚠️ 65 statt 46: Seit der Winkelhysterese (ANGLE_HYSTERESIS_PERCENT,
+        # 31.08.2026) faehrt der Behang erst ab 15 Punkten Abweichung. Der
+        # eine Punkt von 45 auf 46 wuerde bewusst unterdrueckt. Geprueft wird
+        # hier weiterhin die urspruengliche Absicht: dass NUR der Winkel- und
+        # nicht auch der Hoehenbefehl rausgeht.
+        await manager._position_shutter(50.0, 65.0, stop_timer=False)
 
         # Verify only angle command sent
         assert manager.hass.services.async_call.call_count == 1
@@ -500,6 +520,46 @@ class TestPositionShutter:
         assert call.args[1] == "set_cover_tilt_position"
 
     # ========================================================================
+    # Winkelhysterese (zim, 31.08.2026)
+    # ========================================================================
+
+    async def test_kleine_winkelaenderung_faehrt_nicht(self, manager):
+        """Unter der Hysterese bleibt der Behang stehen.
+
+        ANLASS: Die Nachbarn klagten ueber zu viele Jalousiebewegungen. Nach
+        der Zeitdaempfung blieb die Nachfuehrung an den Sonnenstand uebrig —
+        Schritte von rund 15 Punkten alle 17-25 Minuten.
+        """
+        manager._previous_shutter_height = 50.0
+        manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
+
+        await manager._position_shutter(50.0, 55.0, stop_timer=False)  # 10 Punkte
+
+        assert manager.hass.services.async_call.call_count == 0, "10 Punkte liegen unter der Hysterese"
+        assert manager._last_sent_angle == 45.0, "der gesendete Stand bleibt unveraendert"
+
+    async def test_hysterese_misst_gegen_den_gesendeten_stand(self, manager):
+        """Zwei kleine Schritte summieren sich und loesen zusammen aus.
+
+        ⚠️ Der eigentliche Grund fuer den eigenen Merker `_last_sent_angle`:
+        `_previous_shutter_angle` wird jeden Tick nachgezogen, auch wenn kein
+        Befehl rausging. Wer dagegen misst, verliert die Differenz — 45 -> 55
+        -> 65 waere zweimal "nur 10", obwohl der Behang am Ende 20 Punkte
+        hinterherhinkt.
+        """
+        manager._previous_shutter_height = 50.0
+        manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
+
+        await manager._position_shutter(50.0, 55.0, stop_timer=False)   # 10 -> nichts
+        assert manager.hass.services.async_call.call_count == 0
+
+        await manager._position_shutter(50.0, 65.0, stop_timer=False)   # 20 gegen 45 -> faehrt
+        assert manager.hass.services.async_call.call_count == 1
+        assert manager._last_sent_angle == 65.0
+
+    # ========================================================================
     # TEST 8: _enforce_position_update überschreibt Logik
     # ========================================================================
 
@@ -508,6 +568,7 @@ class TestPositionShutter:
         # Set previous position (SAME as target)
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Set enforce flag
         manager._enforce_position_update = True
@@ -527,6 +588,7 @@ class TestPositionShutter:
         # No previous position
         manager._previous_shutter_height = None
         manager._previous_shutter_angle = None
+        manager._last_sent_angle = None
 
         # Call
         await manager._position_shutter(50.0, 45.0, stop_timer=False)
@@ -546,6 +608,7 @@ class TestPositionShutter:
         # Set previous
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with change
         await manager._position_shutter(51.0, 46.0, stop_timer=False)
@@ -570,6 +633,7 @@ class TestPositionShutter:
         # Set previous
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with change
         await manager._position_shutter(51.0, 46.0, stop_timer=False)
@@ -593,6 +657,7 @@ class TestPositionShutter:
         # Set previous values
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with IDENTICAL target position while timer is running
         await manager._position_shutter(50.0, 45.0, stop_timer=False)
@@ -616,6 +681,7 @@ class TestPositionShutter:
         # Set previous values
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with DIFFERENT target position while timer is running
         await manager._position_shutter(60.0, 55.0, stop_timer=False)
@@ -639,6 +705,7 @@ class TestPositionShutter:
         # Set previous values (same as target)
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with SAME position but timer is None (callback)
         await manager._position_shutter(50.0, 45.0, stop_timer=False)
@@ -663,6 +730,7 @@ class TestPositionShutter:
         # Set previous values
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with IDENTICAL position but enforce is True
         await manager._position_shutter(50.0, 45.0, stop_timer=False)
@@ -686,6 +754,7 @@ class TestPositionShutter:
         # Set previous values
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call with IDENTICAL position
         await manager._position_shutter(50.0, 45.0, stop_timer=False)
@@ -705,6 +774,7 @@ class TestPositionShutter:
         # Set previous values (same as target)
         manager._previous_shutter_height = 50.0
         manager._previous_shutter_angle = 45.0
+        manager._last_sent_angle = 45.0
 
         # Call
         await manager._position_shutter(50.0, 45.0, stop_timer=False)

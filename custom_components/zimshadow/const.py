@@ -9,6 +9,19 @@ DOMAIN_DATA_MANAGERS = f"{DOMAIN}_managers"  # A good practice for unique keys
 DEFAULT_NAME = "Shadow Control"
 SC_CONF_COVERS = "covers"  # Constant for 'covers' key within configuration
 
+# ⚠️ WINKELHYSTERESE (zim, 31.08.2026): Der Behang faehrt erst, wenn das Ziel
+# um mehr als diesen Betrag vom zuletzt GESENDETEN Winkel abweicht. Gegen die
+# Sonnenstands-Nachfuehrung in kleinen Schritten, die die Zeitfilter
+# (b05/b08/b10) nicht erreichen — die greifen nur gegen kurzes Zappeln.
+#
+# 15 gemessen am 31.08.2026 als der Punkt, ab dem der Gewinn flach wird:
+# 10 Pkt -> 8 % weniger Fahrten, 15 -> 33 %, 30 -> 39 %. Der Wert liegt knapp
+# ueber der mechanischen Raste der Behaenge (rund 12 Punkte), unterhalb derer
+# sich ohnehin nichts bewegt.
+#
+# Auf 0 setzen stellt das alte Verhalten wieder her (jede Aenderung faehrt).
+ANGLE_HYSTERESIS_PERCENT = 15.0
+
 # Config schema version
 VERSION = 5
 

@@ -173,6 +173,7 @@ async def test_no_open_movement_after_restart_while_in_sun(
     manager._is_initial_run = True  # noqa: SLF001
     manager._previous_shutter_height = None  # noqa: SLF001
     manager._previous_shutter_angle = None  # noqa: SLF001
+    manager._last_sent_angle = None  # noqa: SLF001
     manager._startup_restore_complete = False  # noqa: SLF001
 
     initial_pos_count = len(pos_calls)
