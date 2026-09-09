@@ -781,3 +781,63 @@ class TestPositionShutter:
 
         # Verify flag was reset
         assert manager._enforce_position_update is False
+
+    # ========================================================================
+    # Winkel nur mitsenden, wenn der Behang WIRKLICH faehrt (zim, 09.09.2026)
+    # ========================================================================
+
+    async def test_blockierte_hoehe_loest_keinen_winkelbefehl_aus(self, manager):
+        """Eine von only_close geblockte Hoehenfahrt darf den Winkel nicht neu senden.
+
+        ANLASS 09.09.2026: 3.113 tilt-Befehle an einem Tag (Vortag 338). Im
+        Zustand SHADOW_NEUTRAL (Sonne auf der Fassade, Helligkeit unter der
+        Schwelle) uebergibt der Handler in jedem 30-s-Takt die
+        Nach-Beschattungs-Position b11/b12 — Default b11 = 0 = Behang hoch.
+        only_close blockte die Hoehe (nichts fuhr hoch), aber die Klausel
+        "Winkel senden, wenn sich die HOEHE geaendert hat" verglich die
+        BERECHNETE Hoehe (0) mit der bisherigen (100) und war damit in jedem
+        Takt wahr. Der Doppelsende-Schutz greift nur bei laufendem Timer, den
+        dieser Zustand nicht hat. Ergebnis: alle 30 s derselbe Winkelbefehl.
+
+        Die Klausel meint "Winkel nach einer echten Hoehenfahrt nachziehen",
+        weil die Lamellen nach einer Fahrt mechanisch neu stehen. Massstab ist
+        deshalb die VERWENDETE Hoehe nach der Einschraenkung, nicht der Wunsch.
+        """
+        manager._previous_shutter_height = 100.0   # Behang unten
+        manager._previous_shutter_angle = 0.0      # Lamellen offen
+        manager._last_sent_angle = 0.0
+
+        # only_close: eine oeffnende Hoehenaenderung (100 -> 0) wird verweigert,
+        # zurueck kommt die bisherige Hoehe. Winkel unveraendert durchgereicht.
+        def only_close(config_value, new_value, previous_value):
+            if previous_value is not None and new_value < previous_value:
+                return previous_value
+            return new_value
+        manager._should_output_be_updated = MagicMock(side_effect=only_close)
+
+        for _ in range(10):   # zehn 30-s-Takte in SHADOW_NEUTRAL
+            await manager._position_shutter(0.0, 0.0, stop_timer=True)
+
+        tilt_calls = [c for c in manager.hass.services.async_call.call_args_list if c.args[1] == "set_cover_tilt_position"]
+        pos_calls = [c for c in manager.hass.services.async_call.call_args_list if c.args[1] == "set_cover_position"]
+        assert pos_calls == [], "only_close muss die Hoehenfahrt verhindern"
+        assert tilt_calls == [], f"kein Winkelbefehl ohne echte Hoehenfahrt, aber {len(tilt_calls)} gesendet"
+        assert manager._previous_shutter_height == 100.0, "der Behang bleibt unten"
+
+    async def test_echte_hoehenfahrt_zieht_den_winkel_nach(self, manager):
+        """Die urspruengliche Absicht bleibt: faehrt der Behang, kommt der Winkel mit.
+
+        Nach einer Hoehenfahrt stehen die Lamellen mechanisch neu; deshalb wird
+        der Winkel auch dann gesendet, wenn er rechnerisch gleich bleibt und
+        unter der Hysterese laege.
+        """
+        manager._previous_shutter_height = 100.0
+        manager._previous_shutter_angle = 0.0
+        manager._last_sent_angle = 0.0
+
+        await manager._position_shutter(60.0, 0.0, stop_timer=True)   # schliessende Fahrt, Winkel gleich
+
+        services = [c.args[1] for c in manager.hass.services.async_call.call_args_list]
+        assert services.count("set_cover_position") == 1, "die Hoehenfahrt geht raus"
+        assert services.count("set_cover_tilt_position") == 1, "der Winkel wird nach der Fahrt nachgezogen"
+        assert manager._previous_shutter_height == 60.0

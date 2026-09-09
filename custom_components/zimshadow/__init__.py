@@ -2999,9 +2999,18 @@ class ShadowControlManager:
 
         # Angle Handling - Crucial for "send angle if height changed" logic
         # We need the value of _previous_shutter_height *before* it's updated for height.
-        # So, compare the *calculated* `shutter_height_percent` with what was previously *stored*.
+        #
+        # ⚠️ 09.09.2026 (zim): Massstab ist die VERWENDETE Hoehe nach der Einschraenkung
+        # (used_shutter_height), nicht die berechnete. Die Klausel meint "Winkel nach einer
+        # echten Hoehenfahrt nachziehen", weil die Lamellen danach mechanisch neu stehen.
+        # Bis hierher wurde die BERECHNETE Hoehe verglichen: Im Zustand SHADOW_NEUTRAL
+        # uebergibt der Handler in jedem 30-s-Takt die Nach-Beschattungs-Position b11/b12
+        # (Default b11 = 0 = Behang hoch), only_close blockt die Hoehe, aber 0 != 100 war
+        # in jedem Takt wahr -> derselbe Winkelbefehl alle 30 s, ohne Timer kein
+        # Doppelsende-Schutz: 3.113 tilt-Befehle am 09.09. gegen 338 am Vortag.
+        # Faehrt der Behang nicht, braucht es auch keinen Winkelbefehl.
         height_calculated_different_from_previous = (
-            abs(shutter_height_percent - self._previous_shutter_height) > 0.001 if self._previous_shutter_height is not None else True
+            abs(self.used_shutter_height - self._previous_shutter_height) > 0.001 if self._previous_shutter_height is not None else True
         )
 
         self.used_shutter_angle = self._should_output_be_updated(
