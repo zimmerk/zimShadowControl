@@ -1,6 +1,7 @@
 """Test the shutter slat angle calculation math."""
 
 import math
+from itertools import pairwise
 from unittest.mock import MagicMock
 
 import pytest
@@ -103,118 +104,99 @@ class TestCalculateShutterAngle:
         manager.logger.warning.assert_called()
 
     # ===========================================================================
-    # Tests für Azimuth-Korrektur der effektiven Lamellenbreite
+    # Schraegeinfall: NUR effektive Elevation, KEINE "wirksame Lamellenbreite"
+    # (0.14.0+zimshadow.6, 12.09.2026 — s. Kommentar in _calculate_shutter_angle)
     # ===========================================================================
 
-    async def test_azimuth_correction_zero_relative_azimuth(self, manager):
-        """
-        Sonne direkt senkrecht zur Fassade (rel. Azimuth = 0°):
-        cos(0°) = 1 → effective_slat_width == slat_width → Ergebnis identisch zur alten Berechnung.
+    @staticmethod
+    def _effective_elevation(elevation: float, azimuth: float, facade_azimuth: float) -> float:
+        """Wie _calculate_effective_elevation() es rechnet."""
+        return math.degrees(math.atan(math.tan(math.radians(elevation)) / math.cos(math.radians(abs(azimuth - facade_azimuth)))))
 
-        Fixture: azimuth=180°, facade_azimuth=180°, elevation=30°, effective_elevation=30°
-        Erwartung: 21% (Referenzwert ohne Korrektur)
-        """
+    async def test_zero_relative_azimuth_unchanged(self, manager):
+        """Sonne senkrecht zur Fassade: Referenzwert 21 % (wie vor und nach dem Umbau)."""
         result = manager._calculate_shutter_angle()
-        assert result == pytest.approx(21.0, abs=2.0), f"Bei rel. Azimuth=0° sollte Azimuth-Korrektur keinen Einfluss haben, got {result}%"
+        assert result == pytest.approx(21.0, abs=2.0), f"Bei rel. Azimuth=0° erwartet ~21%, got {result}%"
 
-    async def test_azimuth_correction_45_degree_relative_azimuth(self, manager):
+    async def test_45_degree_relative_azimuth_only_effective_elevation(self, manager):
         """
-        Sonne bei 45° rel. Azimuth zur Fassade:
-        cos(45°) ≈ 0.707 → effective_slat_width = 80 * 0.707 ≈ 56.6 mm
-        Das ergibt einen deutlich steileren Winkel als ohne Korrektur.
-
-        Werte:
-          azimuth=225°, facade_azimuth=180°, elevation=30°
-          effective_elevation = atan(tan(30°) / cos(45°)) ≈ 39.2°
-          alt (ohne Korrektur): ~3%
-          neu (mit Korrektur):  ~38%
+        45° rel. Azimut bei 30° Elevation: effektive Elevation 39,2°, volle Lamellenbreite 80 mm.
+        alpha 50,8° -> asin_arg = sin(50,8°)*70/80 = 0,678 -> beta 42,7° -> gamma 86,5° -> 4° -> ~4,4 %.
+        Upstream lieferte hier ~38 % (Breite auf 56,6 mm geschrumpft) — das war die Doppelkorrektur.
         """
         manager._dynamic_config.sun_azimuth = 225.0
-        # effective_elevation für rel. Azimuth 45° bei elevation 30°
-        eff_elev = math.degrees(math.atan(math.tan(math.radians(30)) / math.cos(math.radians(45))))
-        manager._effective_elevation = eff_elev
+        manager._effective_elevation = self._effective_elevation(30.0, 225.0, 180.0)
 
         result = manager._calculate_shutter_angle()
 
-        assert result == pytest.approx(38.0, abs=2.0), f"Bei rel. Azimuth=45° erwartet ~38%, got {result}%"
-        # Kernaussage: Ergebnis muss deutlich größer sein als ohne Korrektur (~3%)
-        assert result > 20.0, f"Azimuth-Korrektur muss bei 45° einen signifikant steileren Winkel liefern als ~3%, got {result}%"
+        assert result == pytest.approx(4.4, abs=1.5), f"Bei rel. Azimuth=45° erwartet ~4%, got {result}%"
+        assert result < 10.0, "Schraegeinfall darf den Winkel nicht steiler machen als der Frontaleinfall"
 
-    async def test_azimuth_correction_steeper_than_without_correction(self, manager):
+    async def test_grazing_sun_no_jump(self, manager):
         """
-        Bei jedem rel. Azimuth > 0° muss der korrigierte Winkel >= dem unkorrigierten sein.
-        Bei rel. Azimuth = 30°:
-          effective_slat_width = 80 * cos(30°) ≈ 69.3 mm (statt 80 mm)
-          → asin_arg wird größer → beta größer → gamma kleiner → Winkel steiler
+        Suedfassade 165°, Lamellen 95/67 mm, Elevation 31,5° (Nachmittag 12.09.2026):
+        Von rel. Azimut 60° bis 80° darf der Winkel nie STEIGEN und ab ~70° muss er 0 sein.
+        Upstream: 18 % -> 30 % -> Sprung auf 0 % bei 70° (asin_arg > 1, Rueckfall auf volle Breite).
         """
-        manager._dynamic_config.sun_azimuth = 210.0  # 30° rel. Azimuth
-        eff_elev = math.degrees(math.atan(math.tan(math.radians(30)) / math.cos(math.radians(30))))
-        manager._effective_elevation = eff_elev
+        manager._facade_config.azimuth = 165.0
+        manager._facade_config.slat_width = 95.0
+        manager._facade_config.slat_distance = 67.0
+        manager._dynamic_config.sun_elevation = 31.5
+        results = []
+        for rel in range(60, 81):
+            azimuth = 165.0 + rel
+            manager._dynamic_config.sun_azimuth = azimuth
+            manager._effective_elevation = self._effective_elevation(31.5, azimuth, 165.0)
+            results.append((rel, manager._calculate_shutter_angle()))
+        for (rel_a, a), (rel_b, b) in pairwise(results):
+            assert b <= a + 1e-9, f"Winkel steigt bei streifender Sonne: rel {rel_a}° -> {a}%, rel {rel_b}° -> {b}%"
+        assert all(v == 0.0 for rel, v in results if rel >= 70), f"Ab 70° rel. Azimut muessen die Lamellen offen bleiben: {results}"
 
-        result_with_correction = manager._calculate_shutter_angle()
-
-        # Referenz: Was würde die alte Formel (ohne Azimuth-Korrektur) liefern?
-        alpha_deg = 90 - eff_elev
-        asin_arg_old = math.sin(math.radians(alpha_deg)) * 70.0 / 80.0
-        beta_deg_old = math.degrees(math.asin(asin_arg_old))
-        gamma_deg_old = 180 - alpha_deg - beta_deg_old
-        angle_old = round(max(0.0, (90 - gamma_deg_old) / 0.9))
-
-        assert result_with_correction >= angle_old, f"Korrigierter Winkel ({result_with_correction}%) muss >= unkorrigiertem ({angle_old}%) sein"
-
-    async def test_azimuth_correction_real_world_wohnzimmer_hof(self, manager):
+    async def test_real_world_2026_09_12_afternoon_south_facade(self, manager):
         """
-        Reale Konfiguration 'Wohnzimmer Hof' bei aktuellem Sonnenstand.
+        Aufgezeichnete Fahrten 16:17/16:19 (17 %/23 %) und 16:23 (0 %) auf yvette (165°, 95/67 mm).
+        Sonnenwerte aus VictoriaMetrics. Nach dem Umbau: alle drei 0 % -> keine der zwoelf Fahrten.
+        """
+        manager._facade_config.azimuth = 165.0
+        manager._facade_config.slat_width = 95.0
+        manager._facade_config.slat_distance = 67.0
+        for elevation, azimuth in ((32.24, 233.12), (31.71, 234.12), (31.18, 235.11)):
+            manager._dynamic_config.sun_elevation = elevation
+            manager._dynamic_config.sun_azimuth = azimuth
+            manager._effective_elevation = self._effective_elevation(elevation, azimuth, 165.0)
+            assert manager._calculate_shutter_angle() == 0.0, f"el {elevation} az {azimuth}: Lamellen muessen offen bleiben"
 
-        Konfiguration:
-          facade_azimuth=200°, slat_width=95mm, slat_distance=67mm
-        Sonnenstand:
-          elevation=28.6°, azimuth=167.6° → rel. Azimuth=32.4°
-        Erwartung:
-          alt (ohne Korrektur): ~3%  → Sonne scheint durch!
-          neu (mit Korrektur):  ~13% → Korrekte Abschirmung
+    async def test_real_world_wohnzimmer_hof(self, manager):
+        """
+        Upstream-Beispiel 'Wohnzimmer Hof' (200°, 95/67 mm, Sonne 28,6°/167,6°, rel. 32,4°):
+        effektive Elevation 32,9° -> alpha 57,1° -> asin_arg 0,592 -> ~3 %. Upstream erwartete 13 %
+        aus der Breitenkorrektur; geometrisch reicht die kleine Neigung, der Strahl trifft die Lamelle.
         """
         manager._facade_config.azimuth = 200.0
         manager._facade_config.slat_width = 95.0
         manager._facade_config.slat_distance = 67.0
         manager._dynamic_config.sun_azimuth = 167.6
         manager._dynamic_config.sun_elevation = 28.6
-
-        # effective_elevation wie _calculate_effective_elevation() es berechnet
-        virtual_depth = math.cos(math.radians(abs(167.6 - 200.0)))
-        virtual_height = math.tan(math.radians(28.6))
-        manager._effective_elevation = math.degrees(math.atan(virtual_height / virtual_depth))
+        manager._effective_elevation = self._effective_elevation(28.6, 167.6, 200.0)
 
         result = manager._calculate_shutter_angle()
 
-        assert result == pytest.approx(13.0, abs=2.0), f"Wohnzimmer Hof: erwartet ~13%, got {result}%"
-        # Mindestens doppelt so viel wie der fehlerhafte alte Wert (~3%)
-        assert result > 8.0, f"Wohnzimmer Hof: Azimuth-Korrektur muss Winkel deutlich erhöhen (>8%), got {result}%"
+        assert result == pytest.approx(3.3, abs=1.5), f"Wohnzimmer Hof: erwartet ~3%, got {result}%"
 
-    async def test_azimuth_correction_missing_facade_azimuth_returns_zero(self, manager):
-        """
-        Wenn facade_azimuth nicht konfiguriert ist (None), muss die Methode
-        sicher 0.0 zurückgeben (None-Check).
-        """
+    async def test_missing_facade_azimuth_returns_zero(self, manager):
+        """facade_azimuth None -> sicher 0.0 (None-Check bleibt)."""
         manager._facade_config.azimuth = None
         result = manager._calculate_shutter_angle()
         assert result == 0.0
         manager.logger.warning.assert_called()
 
-    async def test_azimuth_correction_90_degree_relative_azimuth_fallback(self, manager):
-        """
-        Bei rel. Azimuth = 90° wäre effective_slat_width = slat_width * cos(90°) = 0.
-        Der Code fällt auf slat_width zurück um Division-by-Zero zu vermeiden.
-        In der Praxis kann dieser Fall nicht auftreten wenn _check_if_facade_is_in_sun()
-        korrekt funktioniert (Fassade wäre dann nicht in der Sonne).
-        """
-        manager._dynamic_config.sun_azimuth = 270.0  # 90° rel. Azimuth zur Fassade (180°)
+    async def test_90_degree_relative_azimuth_no_crash(self, manager):
+        """rel. Azimut 90°: kein Crash, kein NaN, kein negativer Wert (keine Division durch die Breite mehr)."""
+        manager._dynamic_config.sun_azimuth = 270.0
+        manager._effective_elevation = 89.9
 
-        # Bei effective_elevation = 30° und Fallback auf slat_width=80mm
-        # (da eff_slat_width ≈ 0) → Ergebnis wie bei rel_azimuth=0°
         result = manager._calculate_shutter_angle()
 
-        # Hauptsache: kein Crash, kein NaN, kein negativer Wert
         assert isinstance(result, float)
-        assert result >= 0.0
+        assert result == 0.0
         assert not math.isnan(result)

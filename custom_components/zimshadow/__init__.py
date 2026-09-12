@@ -952,6 +952,9 @@ class ShadowControlManager:
 
         self._timer_start_time: datetime | None = None
         self._timer_duration_seconds: float | None = None
+        # Wiederschliess-Daempfung (12.09.2026): Zeitpunkt, seit dem die Helligkeit nach
+        # einer Durchsicht-/Neutral-Phase wieder ueber der Schwelle liegt. None = nicht anhaengig.
+        self._reclose_pending_since: datetime | None = None
 
         self._listeners: list[Callable[[], None]] = []
         self._timer: Callable[[], None] | None = None
@@ -3278,33 +3281,35 @@ class ShadowControlManager:
 
         # ==============================
         # Math based on oblique triangle
-
-        # The sun hits the facade at a relative azimuth angle. This reduces the
-        # effective slat width as seen from the sun's perspective, requiring a
-        # steeper slat angle to block direct sunlight.
-        # effective_slat_width = slat_width * cos(relative_azimuth)
-        relative_azimuth_deg = abs(azimuth - facade_azimuth)
-        # Normalize to 0-90° range (facade is in sun, so max offset is 90°)
-        if relative_azimuth_deg > 90:
-            relative_azimuth_deg = 90.0
-        effective_slat_width = given_shutter_slat_width * math.cos(math.radians(relative_azimuth_deg))
-
+        #
+        # ⚠️ KEINE "wirksame Lamellenbreite" mehr (zim, 12.09.2026, 0.14.0+zimshadow.6):
+        # Upstream verkleinerte hier die Lamellenbreite mit cos(Relativazimut)
+        # ("effective_slat_width") UND rechnete zusaetzlich mit der effektiven
+        # Elevation (tan(e)/cos(Relativazimut), s. _calculate_effective_elevation).
+        # Das zaehlt den Schraegeinfall doppelt — und in die falsche Richtung:
+        # je streifender die Sonne, desto STEILER wurde der Winkel, bis die
+        # Formel bei asin_arg > 1 keine Loesung mehr hatte und ein Rueckfall auf
+        # die volle Breite schlagartig 0 % lieferte. Am 12.09.2026 auf allen sechs
+        # Suedfassaden (165°) belegt: 16:17 rel. Azimut 68° -> 17 %, 16:19 69° ->
+        # 23 %, 16:23 70° -> 0 % (aufgezeichnet in winkel_kalkulatorisch, mit den
+        # Sonnenwerten aus VictoriaMetrics exakt nachgerechnet). Zwei Fahrten um
+        # 20-25 Punkte binnen sechs Minuten, jeden klaren Nachmittag gegen 16:20,
+        # spiegelbildlich vormittags.
+        #
+        # Physik: Die Lamellen sind waagerechte Streifen, die entlang der Fassade
+        # durchlaufen. In der Vertikalebene senkrecht zur Fassade ist ihre Tiefe
+        # immer die volle Breite; der schraege Strahl erscheint dort nur STEILER
+        # (effektive Elevation). Im Grenzfall 90° laeuft die Sonne parallel zur
+        # Fassade, effektive Elevation 90°, waagerechte Lamellen reichen — genau
+        # das liefert die Formel ohne Breitenkorrektur. Mit ihr haetten die
+        # Lamellen unendlich steil stehen muessen.
+        relative_azimuth_deg = min(abs(azimuth - facade_azimuth), 90.0)
         self.logger.debug(
-            "Relative azimuth: %s°, effective slat width: %s mm (given: %s mm)",
-            relative_azimuth_deg,
-            round(effective_slat_width, 1),
+            "Relative azimuth: %s°, effective elevation: %s°, slat width: %s mm (no width correction)",
+            round(relative_azimuth_deg, 1),
+            round(effective_elevation, 1),
             given_shutter_slat_width,
         )
-
-        # Fallback: if effective_slat_width is near zero (sun nearly parallel to facade),
-        # use given_shutter_slat_width to avoid division by zero / extreme values
-        if effective_slat_width < 1e-6:
-            self.logger.warning(
-                "Effective slat width near zero (%s mm), falling back to given slat width (%s mm)",
-                effective_slat_width,
-                given_shutter_slat_width,
-            )
-            effective_slat_width = given_shutter_slat_width
 
         # $alpha is the opposite angle of shutter slat width, so this is the difference
         # between effectiveElevation and vertical
@@ -3312,35 +3317,7 @@ class ShadowControlManager:
         alpha_rad = math.radians(alpha_deg)
 
         # $beta is the opposite angle of shutter slat distance
-        # First try with azimuth-corrected effective_slat_width
-        asin_arg = (math.sin(alpha_rad) * shutter_slat_distance) / effective_slat_width
-
-        # Check if azimuth correction leads to impossible geometry (asin_arg > 1.0)
-        # This happens when effective_slat_width < slat_distance due to oblique sun angle
-        if asin_arg > 1.0:
-            # ⚠️ DEBUG, NICHT WARNING (2026-08-13): Das ist der VORGESEHENE
-            # Rueckfall, kein Fehler. Er greift, sobald die Sonne die Fassade
-            # streift — bei grossem Relativazimut schrumpft die wirksame
-            # Lamellenbreite unter den Lamellenabstand, und die Formel hat
-            # keine Loesung. Die naechsten Zeilen rechnen dann ohne
-            # Azimutkorrektur weiter, was genau richtig ist.
-            #
-            # Das passiert TAEGLICH: Am 2026-08-13 um 19:29 gleichzeitig auf
-            # bad_nord, flur und flur_2, als die Abendsonne die Nordseite
-            # streifte (38,5 mm wirksam gegen 67 mm Abstand). Als Warnung
-            # gemeldet verdeckt es den Fall, auf den es ankommt — dass auch der
-            # Rueckfall scheitert. Der steht unmittelbar darunter und bleibt
-            # deshalb eine Warnung.
-            self.logger.debug(
-                "Azimuth correction leads to impossible geometry (asin_arg=%.3f, "
-                "effective_slat_width=%smm < slat_distance=%smm). "
-                "Falling back to original slat width without azimuth correction.",
-                asin_arg,
-                round(effective_slat_width, 1),
-                shutter_slat_distance,
-            )
-            # Retry with original slat width (no azimuth correction)
-            asin_arg = (math.sin(alpha_rad) * shutter_slat_distance) / given_shutter_slat_width
+        asin_arg = (math.sin(alpha_rad) * shutter_slat_distance) / given_shutter_slat_width
 
         if not (-1 <= asin_arg <= 1):
             self.logger.warning(
@@ -3667,6 +3644,9 @@ class ShadowControlManager:
                 and shadow_open_shutter_delay is not None
                 and current_brightness > shadow_threshold_close
             ):
+                if not self._reclose_delay_elapsed():
+                    # Wiederschliess-Daempfung (s. _reclose_delay_elapsed): erst b05 lang hell bleiben
+                    return ShutterState.SHADOW_HORIZONTAL_NEUTRAL
                 target_height = self._calculate_shutter_height()
                 target_angle = self._calculate_shutter_angle()
                 if target_height is not None and target_angle is not None:
@@ -3693,6 +3673,7 @@ class ShadowControlManager:
                     ShutterState.SHADOW_HORIZONTAL_NEUTRAL,
                 )
                 return ShutterState.SHADOW_HORIZONTAL_NEUTRAL
+            self._reset_reclose_pending()  # Helligkeit unter der Schwelle: Daempfung von vorn
             if shadow_open_shutter_delay is not None:
                 self.logger.debug(
                     "State %s (%s): Brightness not above threshold, starting timer for %s (%ss)",
@@ -3710,6 +3691,7 @@ class ShadowControlManager:
                 ShutterState.SHADOW_HORIZONTAL_NEUTRAL,
             )
             return ShutterState.SHADOW_HORIZONTAL_NEUTRAL
+        self._reset_reclose_pending()
         neutral_height = self._facade_config.neutral_pos_height
         neutral_angle = self._facade_config.neutral_pos_angle
         if neutral_height is not None and neutral_angle is not None:
@@ -3745,6 +3727,9 @@ class ShadowControlManager:
             height_after_shadow = self._shadow_config.height_after_sun
             angle_after_shadow = self._shadow_config.angle_after_sun
             if current_brightness is not None and shadow_threshold_close is not None and current_brightness > shadow_threshold_close:
+                if not self._reclose_delay_elapsed():
+                    # Wiederschliess-Daempfung (s. _reclose_delay_elapsed): b10-Timer laeuft weiter
+                    return ShutterState.SHADOW_NEUTRAL_TIMER_RUNNING
                 self.logger.debug(
                     "State %s (%s): Brightness (%s) again above threshold (%s), state %s and stopping timer",
                     ShutterState.SHADOW_NEUTRAL_TIMER_RUNNING,
@@ -3755,6 +3740,7 @@ class ShadowControlManager:
                 )
                 self._cancel_timer()
                 return ShutterState.SHADOW_FULL_CLOSED
+            self._reset_reclose_pending()  # Helligkeit unter der Schwelle: Daempfung von vorn
             if self._is_timer_finished():
                 if height_after_shadow is not None and angle_after_shadow is not None:
                     await self._position_shutter(
@@ -3784,6 +3770,7 @@ class ShadowControlManager:
                 ShutterState.SHADOW_NEUTRAL_TIMER_RUNNING.name,
             )
             return ShutterState.SHADOW_NEUTRAL_TIMER_RUNNING
+        self._reset_reclose_pending()
         neutral_height = self._facade_config.neutral_pos_height
         neutral_angle = self._facade_config.neutral_pos_angle
         if neutral_height is not None and neutral_angle is not None:
@@ -5092,6 +5079,49 @@ class ShadowControlManager:
         # self.logger.warning(
         #     "_should_output_be_updated: Unknown value '%s'. Returning new_value (%s)", config_value.name, new_value)
         return new_value
+
+    def _reset_reclose_pending(self) -> None:
+        """Wiederschliess-Daempfung zuruecksetzen (Helligkeit wieder unter der Schwelle oder Zustand verlassen)."""
+        if self._reclose_pending_since is not None:
+            self.logger.debug("Reclose damping reset")
+        self._reclose_pending_since = None
+
+    def _reclose_delay_elapsed(self) -> bool:
+        """
+        Wiederschliess-Daempfung: Rueckweg aus Durchsicht/Neutral-Timer in die Beschattung erst nach b05.
+
+        ⚠️ ASYMMETRIE IM UPSTREAM (zim, 12.09.2026, 0.14.0+zimshadow.6): Aus der
+        Beschattung heraus wartet zimSHADOW b08 (Durchsicht nach, 1200 s) und b10
+        (Oeffnen nach, 1200 s), bevor sich etwas bewegt. Zurueck in die Beschattung
+        ging es aus SHADOW_HORIZONTAL_NEUTRAL und SHADOW_NEUTRAL_TIMER_RUNNING
+        dagegen OHNE jede Verzoegerung, sobald ein einziger Helligkeitswert ueber
+        der Schwelle lag. Belegt 12.09.2026: Wolkenloch 16:49-17:08 (8-15 klx <
+        26 klx), Durchsicht-Timer lief ab, 17:08:30 Lamellen auf b09 = 50;
+        17:10 ein Wert 27,4 klx -> sofort zurueck in shadow_full_closed, Lamellen
+        auf den Sonnenwinkel. 50 Punkte hin und zurueck in zwei Minuten auf neun
+        Fassaden. Der Wiederweg nutzt jetzt dieselbe Daempfung wie der Einstieg
+        aus NEUTRAL: b05 (Schliessen nach, 480 s) muss die Helligkeit am Stueck
+        ueber der Schwelle liegen. Faellt sie zwischendurch darunter, beginnt die
+        Wartezeit von vorn (Reset in den Handlern).
+
+        Der laufende Zustands-Timer (b10) bleibt davon unberuehrt; er ist als
+        Einzeltimer belegt, deshalb ein eigener Zeitstempel.
+        """
+        delay = self._shadow_config.after_seconds
+        now = dt_util.utcnow()
+        if self._reclose_pending_since is None:
+            self._reclose_pending_since = now
+            self.logger.info("Brightness back above threshold, reclose damping started (%ss)", delay)
+        if not isinstance(delay, (int, float)) or delay <= 0:
+            self._reclose_pending_since = None
+            return True
+        elapsed = (now - self._reclose_pending_since).total_seconds()
+        if elapsed >= delay:
+            self.logger.info("Reclose damping elapsed (%.0fs >= %ss), returning to shadow position", elapsed, delay)
+            self._reclose_pending_since = None
+            return True
+        self.logger.debug("Reclose damping active: %.0fs of %ss", elapsed, delay)
+        return False
 
     async def _start_timer(self, delay_seconds: float) -> None:
         """Start new timer."""

@@ -102,16 +102,18 @@ def _winkel_manager(slat_width, slat_distance, elevation, azimuth, facade_azimut
     return m
 
 
-def test_azimut_rueckfall_ist_nur_debug():
-    """Streifende Sonne: vorgesehener Rueckfall, keine Warnung."""
+def test_streifende_sonne_ohne_rueckfall_und_ohne_warnung():
+    """
+    Streifende Sonne (rel. Azimut 55°, Elevation 5°): seit 0.14.0+zimshadow.6 gibt es keinen
+    Azimut-Rueckfall mehr (die Breitenkorrektur ist weg) — die Formel rechnet mit der vollen
+    Lamellenbreite durch, protokolliert nichts als Warnung und liefert einen Winkel im Bereich.
+    """
     from custom_components.zimshadow.const import ShutterType
 
     m = _winkel_manager(95.0, 67.0, elevation=5.0, azimuth=290.0, facade_azimuth=345.0)
     m._facade_config.shutter_type = ShutterType.MODE1
-    m._calculate_shutter_angle()
+    ergebnis = m._calculate_shutter_angle()
 
-    meldungen = [str(c) for c in m.logger.debug.call_args_list]
-    assert any("impossible geometry" in t for t in meldungen), "Rueckfall muss protokolliert werden"
-    assert not any("impossible geometry" in str(c) for c in m.logger.warning.call_args_list), (
-        "der vorgesehene Rueckfall darf keine Warnung sein"
-    )
+    assert 0.0 <= ergebnis <= 100.0
+    assert not m.logger.warning.called, "streifende Sonne ist kein Fehlerfall"
+    assert not any("impossible geometry" in str(c) for c in m.logger.debug.call_args_list), "der alte Rueckfall existiert nicht mehr"
