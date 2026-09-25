@@ -210,9 +210,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
             # (z.B. "+0200"), bleibt dabei weiterhin gut lesbare Lokalzeit, macht sie
             # aber eindeutig - keine Umrechnung beim Korrelieren mit der REST-API
             # (die immer explizites UTC liefert) mehr noetig.
-            handler.setFormatter(
-                logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s — %(message)s", datefmt="%Y-%m-%d %H:%M:%S%z")
-            )
+            handler.setFormatter(logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s — %(message)s", datefmt="%Y-%m-%d %H:%M:%S%z"))
             handler.setLevel(log_level)
             return handler
 
@@ -1127,7 +1125,8 @@ class ShadowControlManager:
         self.logger.debug("=== Manager lifecycle started ===")
 
     def mark_startup_restore_complete(self) -> None:
-        """Mark startup/reload restore as complete, allowing _position_shutter physical output.
+        """
+        Mark startup/reload restore as complete, allowing _position_shutter physical output.
 
         Called from async_setup_entry() for the config-entry-reload case (Home Assistant is
         already fully running), right after await hass.config_entries.async_forward_entry_setups()
@@ -1582,7 +1581,8 @@ class ShadowControlManager:
         self._listeners = []
 
     async def _async_home_assistant_started(self, event: Event, *, mark_complete: bool = True) -> None:
-        """Calculate positions after start of Home Assistant.
+        """
+        Calculate positions after start of Home Assistant.
 
         Args:
             event: The EVENT_HOMEASSISTANT_STARTED event, or None when invoked directly (reload).
@@ -1760,9 +1760,7 @@ class ShadowControlManager:
 
         # Shadow Control Inputs
         zimshadow_enabled_manual = self.get_internal_entity_id(SCInternal.SHADOW_CONTROL_ENABLED_MANUAL)
-        zimshadow_enabled_value = (
-            self._get_internal_entity_state_value(zimshadow_enabled_manual, True, bool) if zimshadow_enabled_manual else True
-        )
+        zimshadow_enabled_value = self._get_internal_entity_state_value(zimshadow_enabled_manual, True, bool) if zimshadow_enabled_manual else True
         self._shadow_config.enabled = self._get_entity_state_value(SCShadowInput.CONTROL_ENABLED_ENTITY.value, zimshadow_enabled_value, bool)
 
         # =============================================================
@@ -2170,7 +2168,7 @@ class ShadowControlManager:
 
         await self.async_calculate_and_apply_cover_position(event)
 
-    async def async_calculate_and_apply_cover_position(self, event: Event | None) -> None:
+    async def async_calculate_and_apply_cover_position(self, event: Event | None) -> None:  # noqa: C901
         """Calculate and apply cover and tilt position."""
         self.logger.debug("=====================================================================")
         self.logger.debug("Calculating and applying cover position, triggered by event: %s", event.data if event else "None")
@@ -2804,7 +2802,7 @@ class ShadowControlManager:
 
         self.logger.debug("New shutter state after processing: %s (%s)", self.current_shutter_state.name, self.current_shutter_state.value)
 
-    async def _position_shutter(self, shutter_height_percent: float, shutter_angle_percent: float, stop_timer: bool) -> None:
+    async def _position_shutter(self, shutter_height_percent: float, shutter_angle_percent: float, stop_timer: bool) -> None:  # noqa: C901
         """Evaluate and perform final shutter positioning commands."""
         self.logger.debug(
             "Starting _position_shutter with target height %.2f%% and angle %.2f%% (is_initial_run: %s, lock_state: %s)",
@@ -2875,7 +2873,8 @@ class ShadowControlManager:
                 self._previous_shutter_height = physical_height
                 self._previous_shutter_angle = physical_angle
                 self.logger.debug(
-                    "Initial run: seeded previous height/angle from physical cover state (%.1f%% / %.1f%%) instead of calculated target (%.1f%% / %.1f%%)",
+                    "Initial run: seeded previous height/angle from physical cover state (%.1f%% / %.1f%%) "
+                    "instead of calculated target (%.1f%% / %.1f%%)",
                     physical_height,
                     physical_angle,
                     shutter_height_percent,

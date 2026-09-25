@@ -552,10 +552,10 @@ class TestPositionShutter:
         manager._previous_shutter_angle = 45.0
         manager._last_sent_angle = 45.0
 
-        await manager._position_shutter(50.0, 55.0, stop_timer=False)   # 10 -> nichts
+        await manager._position_shutter(50.0, 55.0, stop_timer=False)  # 10 -> nichts
         assert manager.hass.services.async_call.call_count == 0
 
-        await manager._position_shutter(50.0, 65.0, stop_timer=False)   # 20 gegen 45 -> faehrt
+        await manager._position_shutter(50.0, 65.0, stop_timer=False)  # 20 gegen 45 -> faehrt
         assert manager.hass.services.async_call.call_count == 1
         assert manager._last_sent_angle == 65.0
 
@@ -803,8 +803,8 @@ class TestPositionShutter:
         weil die Lamellen nach einer Fahrt mechanisch neu stehen. Massstab ist
         deshalb die VERWENDETE Hoehe nach der Einschraenkung, nicht der Wunsch.
         """
-        manager._previous_shutter_height = 100.0   # Behang unten
-        manager._previous_shutter_angle = 0.0      # Lamellen offen
+        manager._previous_shutter_height = 100.0  # Behang unten
+        manager._previous_shutter_angle = 0.0  # Lamellen offen
         manager._last_sent_angle = 0.0
 
         # only_close: eine oeffnende Hoehenaenderung (100 -> 0) wird verweigert,
@@ -813,9 +813,10 @@ class TestPositionShutter:
             if previous_value is not None and new_value < previous_value:
                 return previous_value
             return new_value
+
         manager._should_output_be_updated = MagicMock(side_effect=only_close)
 
-        for _ in range(10):   # zehn 30-s-Takte in SHADOW_NEUTRAL
+        for _ in range(10):  # zehn 30-s-Takte in SHADOW_NEUTRAL
             await manager._position_shutter(0.0, 0.0, stop_timer=True)
 
         tilt_calls = [c for c in manager.hass.services.async_call.call_args_list if c.args[1] == "set_cover_tilt_position"]
@@ -835,7 +836,7 @@ class TestPositionShutter:
         manager._previous_shutter_angle = 0.0
         manager._last_sent_angle = 0.0
 
-        await manager._position_shutter(60.0, 0.0, stop_timer=True)   # schliessende Fahrt, Winkel gleich
+        await manager._position_shutter(60.0, 0.0, stop_timer=True)  # schliessende Fahrt, Winkel gleich
 
         services = [c.args[1] for c in manager.hass.services.async_call.call_args_list]
         assert services.count("set_cover_position") == 1, "die Hoehenfahrt geht raus"

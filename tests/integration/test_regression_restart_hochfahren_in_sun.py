@@ -147,8 +147,8 @@ async def test_no_open_movement_after_restart_while_in_sun(
     # Bewegung gegen die uninitialisierten 0.0/0.0-Defaults gewertet und Auto-Lock
     # ausloesen, bevor der eigentliche Testfall (der simulierte Neustart) ueberhaupt
     # beginnt. SC-Skala: height/angle = 100 - HA-Wert.
-    manager._last_calculated_height = 100.0 - initial_position  # noqa: SLF001
-    manager._last_calculated_angle = 100.0 - initial_tilt  # noqa: SLF001
+    manager._last_calculated_height = 100.0 - initial_position
+    manager._last_calculated_angle = 100.0 - initial_tilt
 
     hass.states.async_set(
         "cover.sc_dummy",
@@ -170,11 +170,11 @@ async def test_no_open_movement_after_restart_while_in_sun(
     # bestehende Testsuite (test_ha_restart_no_movement_final.py) abdeckt, aber den Manager selbst
     # nie neu konstruiert und deshalb diesen Bug nicht erreichen kann.
     manager.current_shutter_state = ShutterState.NEUTRAL
-    manager._is_initial_run = True  # noqa: SLF001
-    manager._previous_shutter_height = None  # noqa: SLF001
-    manager._previous_shutter_angle = None  # noqa: SLF001
-    manager._last_sent_angle = None  # noqa: SLF001
-    manager._startup_restore_complete = False  # noqa: SLF001
+    manager._is_initial_run = True
+    manager._previous_shutter_height = None
+    manager._previous_shutter_angle = None
+    manager._last_sent_angle = None
+    manager._startup_restore_complete = False
 
     initial_pos_count = len(pos_calls)
     initial_tilt_count = len(tilt_calls)
@@ -183,10 +183,10 @@ async def test_no_open_movement_after_restart_while_in_sun(
     # dann die erste (stille) Neuberechnung ausloesen, dann _is_initial_run zuruecksetzen - exakt
     # die im Code dokumentierte Reihenfolge (__init__.py Zeilen 1445-1459). Passiert in der Realitaet
     # kurz nach dem echten HA-Start (innerhalb der 30s-Grace-Period).
-    manager._startup_restore_complete = True  # noqa: SLF001
+    manager._startup_restore_complete = True
     await manager.async_calculate_and_apply_cover_position(None)
-    if manager._is_initial_run:  # noqa: SLF001
-        manager._is_initial_run = False  # noqa: SLF001
+    if manager._is_initial_run:
+        manager._is_initial_run = False
     await hass.async_block_till_done()
 
     # Ueber die 30s HA-Restart-Grace-Period hinaus vorspulen (_is_in_ha_restart_grace_period()),
@@ -200,7 +200,7 @@ async def test_no_open_movement_after_restart_while_in_sun(
     # simuliert z.B. restaurierte Config-Entities, die per externer Enforce-Entity eine sofortige
     # Neupositionierung ausloesen (__init__.py Zeile 2236-2243/4865), analog zu einem echten
     # HA-Neustart, bei dem restaurierte number/select-Entities denselben Effekt haben koennen.
-    manager._enforce_position_update = True  # noqa: SLF001
+    manager._enforce_position_update = True
     await manager.async_calculate_and_apply_cover_position(None)
     await hass.async_block_till_done()
 
@@ -224,19 +224,23 @@ async def test_no_open_movement_after_restart_while_in_sun(
 
     for call in new_pos_calls:
         sent_position = call.data.get("position")
-        assert sent_position is not None and sent_position <= initial_position, (
+        meldung = (
             f"BUG: Hoehen-Kommando nach simuliertem Neustart oeffnet die Fassade trotz only_close! "
             f"Ausgangsposition={initial_position}, gesendet={sent_position}. "
             f"Fassade war beim Neustart 'in der Sonne' -- Restart-Hochfahren-Bug (s. Modul-Docstring)."
         )
+        assert sent_position is not None, meldung
+        assert sent_position <= initial_position, meldung
 
     for call in new_tilt_calls:
         sent_tilt = call.data.get("tilt_position")
-        assert sent_tilt is not None and sent_tilt <= initial_tilt, (
+        meldung = (
             f"BUG: Lamellen-Kommando nach simuliertem Neustart oeffnet die Fassade trotz only_close! "
             f"Ausgangswinkel={initial_tilt}, gesendet={sent_tilt}. "
             f"Fassade war beim Neustart 'in der Sonne' -- Restart-Hochfahren-Bug (s. Modul-Docstring)."
         )
+        assert sent_tilt is not None, meldung
+        assert sent_tilt <= initial_tilt, meldung
 
     _LOGGER.info("SUCCESS: Keine oeffnende Bewegung nach simuliertem Neustart trotz 'in der Sonne'")
 

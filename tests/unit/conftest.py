@@ -28,6 +28,7 @@ from custom_components.zimshadow.const import (
     ShutterState,
 )
 
+
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading custom integrations in all tests."""

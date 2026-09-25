@@ -202,9 +202,7 @@ class TestEnforcePositioningAfterStaleTracking:
         instance._convert_shutter_angle_percent_to_degrees = MagicMock(return_value=0.0)
 
         instance.hass.states.get = MagicMock(
-            return_value=MagicMock(
-                attributes={"supported_features": (CoverEntityFeature.SET_POSITION | CoverEntityFeature.SET_TILT_POSITION)}
-            )
+            return_value=MagicMock(attributes={"supported_features": (CoverEntityFeature.SET_POSITION | CoverEntityFeature.SET_TILT_POSITION)})
         )
         instance.hass.is_running = True
         instance.hass.services.has_service = MagicMock(return_value=True)
@@ -299,9 +297,7 @@ class TestReloadRaceStartupRestoreComplete:
         instance._should_output_be_updated = ShadowControlManager._should_output_be_updated.__get__(instance)
 
         instance.hass.states.get = MagicMock(
-            return_value=MagicMock(
-                attributes={"supported_features": (CoverEntityFeature.SET_POSITION | CoverEntityFeature.SET_TILT_POSITION)}
-            )
+            return_value=MagicMock(attributes={"supported_features": (CoverEntityFeature.SET_POSITION | CoverEntityFeature.SET_TILT_POSITION)})
         )
         instance.hass.is_running = True  # reload: HA itself is already fully running
         instance.hass.services.has_service = MagicMock(return_value=True)
@@ -351,8 +347,7 @@ class TestReloadRaceStartupRestoreComplete:
 
         manager.hass.services.async_call.assert_not_called()
         assert manager.calculated_shutter_height == 100.0, (
-            "Sanity check: der (fehlerhaft defaultete) Zielwert sollte intern zwar berechnet/"
-            "getrackt, aber NICHT physisch ausgegeben werden."
+            "Sanity check: der (fehlerhaft defaultete) Zielwert sollte intern zwar berechnet/getrackt, aber NICHT physisch ausgegeben werden."
         )
 
     async def test_real_cold_boot_path_still_marks_restore_complete_and_positions(self, manager):
@@ -394,9 +389,7 @@ class TestMovementRestrictionStickyFallback:
         # Kein externes Entity konfiguriert -> interner Entity-Pfad wird genommen (Standardfall
         # aller 13 Hausinstanzen).
         instance._config.get = MagicMock(return_value=None)
-        instance.get_internal_entity_id = MagicMock(
-            side_effect=lambda internal_enum: f"select.{internal_enum.value}"
-        )
+        instance.get_internal_entity_id = MagicMock(side_effect=lambda internal_enum: f"select.{internal_enum.value}")
 
         instance._get_movement_restricted_from_state = ShadowControlManager._get_movement_restricted_from_state.__get__(instance)
         instance._handle_movement_restriction = ShadowControlManager._handle_movement_restriction.__get__(instance)

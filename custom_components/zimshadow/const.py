@@ -330,13 +330,13 @@ class SCDefaults(Enum):
     # 100 (-> cover_position=0) der korrekte Fallback-Default fuer noch nicht
     # konfigurierte/restaurierte Instanzen. Siehe packages/zimshadow.yaml fuer den
     # Live-Vorfall, der das aufgedeckt hat.
-    NEUTRAL_POS_HEIGHT_VALUE = 100  # noqa: PIE796
+    NEUTRAL_POS_HEIGHT_VALUE = 100
     NEUTRAL_POS_ANGLE_VALUE = 0  # noqa: PIE796
     SHADOW_BRIGHTNESS_THRESHOLD_WINTER_VALUE = 30000
     SHADOW_BRIGHTNESS_THRESHOLD_SUMMER_VALUE = 50000
     SHADOW_BRIGHTNESS_THRESHOLD_MINIMAL_VALUE = 20000
     SHADOW_AFTER_SECONDS_VALUE = 15
-    SHADOW_SHUTTER_MAX_HEIGHT_VALUE = 100
+    SHADOW_SHUTTER_MAX_HEIGHT_VALUE = 100  # noqa: PIE796
     SHADOW_SHUTTER_MAX_ANGLE_VALUE = 100  # noqa: PIE796
     SHADOW_SHUTTER_LOOK_THROUGH_SECONDS_VALUE = 15  # noqa: PIE796
     SHADOW_SHUTTER_OPEN_SECONDS_VALUE = 15  # noqa: PIE796

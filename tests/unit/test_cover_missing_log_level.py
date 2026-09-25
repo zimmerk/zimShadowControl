@@ -10,11 +10,13 @@ Der Test haelt genau diese Unterscheidung fest. Wer die Meldung kuenftig
 pauschal herabstuft oder pauschal zurueck auf `warning` hebt, faellt hier auf.
 """
 
+import math
 from unittest.mock import MagicMock
 
 import pytest
 
 from custom_components.zimshadow import ShadowControlManager
+from custom_components.zimshadow.const import ShutterType
 
 
 @pytest.fixture
@@ -23,7 +25,7 @@ def manager():
     m = MagicMock()
     m.logger = MagicMock()
     m._target_cover_entity_id = ["cover.gibtsnochnicht"]
-    m.hass.states.get.return_value = None          # Cover ist (noch) nicht da
+    m.hass.states.get.return_value = None  # Cover ist (noch) nicht da
     m._get_current_cover_position = ShadowControlManager._get_current_cover_position.__get__(m)
     return m
 
@@ -79,8 +81,6 @@ async def test_gar_kein_cover_konfiguriert_bleibt_warnung(manager):
 # Unterschieden wird stattdessen nach Ausgang: der vorgesehene Rueckfall ist
 # `debug`, sein Scheitern bleibt `warning`.
 
-import math
-
 
 def _winkel_manager(slat_width, slat_distance, elevation, azimuth, facade_azimuth):
     """Manager-Attrappe fuer _calculate_shutter_angle."""
@@ -108,8 +108,6 @@ def test_streifende_sonne_ohne_rueckfall_und_ohne_warnung():
     Azimut-Rueckfall mehr (die Breitenkorrektur ist weg) — die Formel rechnet mit der vollen
     Lamellenbreite durch, protokolliert nichts als Warnung und liefert einen Winkel im Bereich.
     """
-    from custom_components.zimshadow.const import ShutterType
-
     m = _winkel_manager(95.0, 67.0, elevation=5.0, azimuth=290.0, facade_azimuth=345.0)
     m._facade_config.shutter_type = ShutterType.MODE1
     ergebnis = m._calculate_shutter_angle()
