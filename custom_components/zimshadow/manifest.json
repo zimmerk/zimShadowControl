@@ -1,15 +1,15 @@
 {
   "domain": "zimshadow",
   "name": "zimSHADOW",
+  "after_dependencies": [
+    "abbfreeathome_ci"
+  ],
   "codeowners": [
     "@zimmerk"
   ],
   "config_flow": true,
   "dependencies": [
     "sun"
-  ],
-  "after_dependencies": [
-    "abbfreeathome_ci"
   ],
   "documentation": "https://github.com/zimmerk/zimShadowControl",
   "integration_type": "device",
