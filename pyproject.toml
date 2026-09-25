@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shadow-control"
 version = "0.1.0"
-description = "Shadow Control Home Assistant Integration"
+description = "zimSHADOW Home Assistant Integration"
 readme = "README.md"
 requires-python = ">=3.12"
 

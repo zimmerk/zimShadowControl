@@ -1,5 +1,43 @@
 # Changes
 
+## zimSHADOW (since 0.14.0)
+
+zimSHADOW is the independently maintained continuation of
+[shadow-control](https://github.com/starwarsfan/shadow-control) by Yves Schumann. The entries below are
+the changes compared to the upstream releases. Version numbers carry the suffix `+zimshadow.N`.
+
+### 0.14.0+zimshadow.6 (2026-09-12)
+* Slat angle without width correction: the formula now uses the full slat width. There is no azimuth
+  fallback any more.
+* Re-closing is damped (option `b05`, close after).
+
+### 0.14.0+zimshadow.5 (2026-09-09)
+* The slat angle follows only after a real height movement.
+
+### 0.14.0+zimshadow.4 (2026-08-31)
+* Angle hysteresis: a shutter moves only from a difference of 15 points.
+
+### Renaming to zimSHADOW (2026-08-13 to 2026-08-16)
+* Integration domain `shadow_control` -> `zimshadow`, display name **zimSHADOW**, own logo and brand
+  assets (`custom_components/zimshadow/brand/`).
+* The azimuth fallback is logged as `debug`, the cover startup order is defined and its message
+  classified correctly.
+
+### 0.13.0+zimenergy.N (2026-07-21 to 2026-07-26)
+* Fixes for unexpected shutter-opening incidents after a restart or a config-entry reload: reload race,
+  stale positioning targets (also after toggling the dawn switch), state machine stuck after switching
+  off, restore transition on the `lock_with_position` helper, default of `neutral_pos_height` corrected
+  from 0 to 100, grace period stuck after a reload.
+* Own instance log file with UTC offset in the timestamps.
+
+### CI (2026-09-25)
+* Ruff lint and format findings fixed, `manifest.json` keys sorted (hassfest). Validate, Lint, Tests
+  and Integration tests are green again.
+
+---
+
+## Upstream
+
 ## 0.13.1
 ### Fixes:
 * Fix #99: Wrong behavior within lock state 2 (again...)

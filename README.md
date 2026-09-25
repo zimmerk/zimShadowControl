@@ -1,65 +1,36 @@
-![logo](/images/logo.svg#gh-light-mode-only)
-![logo](/images/dark_logo.svg#gh-dark-mode-only)
+![zimSHADOW](/custom_components/zimshadow/brand/logo@2x.png#gh-light-mode-only)
+![zimSHADOW](/custom_components/zimshadow/brand/dark_logo@2x.png#gh-dark-mode-only)
 
-# Shadow Control
+# zimSHADOW
 
 **A Home Assistant integration to fully automate movement and positioning of rolling shutters.**
 
-![Version](https://img.shields.io/github/v/release/starwarsfan/shadow-control?style=for-the-badge)
-[![Tests][tests-badge]][tests]
-[![Coverage][coverage-badge]][coverage]
-[![hacs_badge][hacsbadge]][hacs]
-[![github][ghsbadge]][ghs]
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
-[![PayPal][paypalbadge]][paypal]
-[![hainstall][hainstallbadge]][hainstall]
+[![Validate](https://github.com/zimmerk/zimShadowControl/actions/workflows/validate.yml/badge.svg)](https://github.com/zimmerk/zimShadowControl/actions/workflows/validate.yml)
+[![Lint](https://github.com/zimmerk/zimShadowControl/actions/workflows/lint.yml/badge.svg)](https://github.com/zimmerk/zimShadowControl/actions/workflows/lint.yml)
+[![Tests](https://github.com/zimmerk/zimShadowControl/actions/workflows/unittest.yml/badge.svg)](https://github.com/zimmerk/zimShadowControl/actions/workflows/unittest.yml)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
 Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 
-> **⚠️ This is a customized private fork.** This repository is a fork of
-> [starwarsfan/shadow-control](https://github.com/starwarsfan/shadow-control),
-> maintained for the [zim-ha-config](https://github.com/zimmerk/zim-ha-config)
-> setup and containing bugfixes specific to that environment. For the
-> original, actively maintained upstream project, please use the repository
-> linked above.
+> **Origin.** zimSHADOW is based on [shadow-control](https://github.com/starwarsfan/shadow-control) by Yves Schumann
+> ([@starwarsfan](https://github.com/starwarsfan)), published under the MIT
+> license (see [LICENSE](/LICENSE)). It has been developed independently since
+> version 0.14.0 (version suffix `+zimshadow.N`) and is maintained for the
+> [zim-ha-config](https://github.com/zimmerk/zim-ha-config) setup
+> (13 facades, 15 shutters). Compared to the upstream project it is renamed:
+> integration domain `zimshadow`, display name **zimSHADOW**, own logo. There is
+> no connection to the HACS default entry of the upstream project. Please report
+> issues here, not at upstream.
 >
-> **Fixes in this fork (not yet in upstream):**
-> - `_should_output_be_updated()` returned the newly calculated value
->   unconditionally whenever `previous_value` was `None` (e.g. right after a
->   config-entry reload), completely bypassing the `only_close`/`only_open`
->   movement restriction. Fixed to fall back to the most restrictive bound
->   (fully closed / fully open) instead of passing the new value through
->   unchecked.
-> - `_update_input_values()` replaced `shadow_shutter_max_height` with the
->   hardcoded upstream default (100) whenever the corresponding `number.*`
->   entity was transiently unavailable, instead of keeping the last known
->   real value. Fixed to stick to the manager's own last-read value.
-> - `_position_shutter()`'s initial-run handling silently recorded the
->   freshly *calculated* target as `previous_shutter_height`/`_angle` instead
->   of leaving it unset - on every reload this poisoned the reference value
->   *before* the first real positioning call, so the `previous_value is None`
->   safe-boundary fix above never actually triggered for facades that
->   recalculate on restart (e.g. those currently in the sun). Fixed to seed
->   both from the cover's real physical position on the first call, and to
->   leave them untouched on any further call while still in the initial run.
-> - `async_unlock_integration()` handed a bare `None` (via
->   `_height_during_lock_state`) to the state-change handlers of the two lock
->   switches it turns off, which feed it straight into
->   `previous_shutter_height`/`_angle`. Safe in isolation (`previous_value is
->   None` hits the safe-boundary fix above) - but once one of the two
->   handlers had already forwarded the `None` once, a second, interleaved
->   handler no longer saw `None`, so the protection never fired for it.
->   Fixed to read the cover's real physical position up front and anchor
->   `previous_shutter_height`/`_angle`, `_last_calculated_height`/`_angle`
->   and (when clearing an auto-lock) `_height_during_lock_state`/
->   `_angle_during_lock_state` to it before either switch is touched: every
->   downstream consumer now works with a value that matches reality,
->   regardless of interleaving order. Also skips turning off a lock switch
->   that's already off, since that alone could still re-trigger its handler.
->
-> All four were confirmed as root causes of unexpected shutter-opening
-> incidents in the zim-ha-config setup. See the commit history for full
-> details and regression tests.
+> **Changes compared to upstream** (details: [release notes](/RELEASENOTES.md)):
+> - Fixes for unexpected shutter-opening incidents after a restart or a
+>   config-entry reload (`only_close` / `only_open` restriction bypassed when
+>   the previous value was unknown; upstream default replacing the real
+>   `shadow_shutter_max_height`; wrong reference values in the initial run and
+>   when unlocking).
+> - Slat angle: a hysteresis of 15 points, the angle follows only after a real
+>   height movement, no width correction, damped re-closing.
+> - Own instance log file with time zone offset, own logo and brand assets.
 
 ## Table of content
 
@@ -166,7 +137,7 @@ Gehe zur [deutschen Version](/README.de.md) der Dokumentation.
 
 # Introduction
 
-**Shadow Control** is the migration of my Edomi-LBS "Beschattungssteuerung-NG" to Home Assistant. As Edomi was [sentenced to death](https://knx-user-forum.de/forum/projektforen/edomi/1956975-quo-vadis-edomi) and because I'm not really happy with the existing solutions to automate my shutters, I decided to migrate my LBS (Edomi name for **L**ogic**B**au**S**tein, a logic block) to a Home Assistant integration. To do so was a nice deep dive into the backgrounds of Home Assistant, the idea behind and how it works. Feel free to use the integration on your needs.
+**zimSHADOW** is based on *Shadow Control*, the migration of the Edomi-LBS "Beschattungssteuerung-NG" to Home Assistant by Yves Schumann. As Edomi was [sentenced to death](https://knx-user-forum.de/forum/projektforen/edomi/1956975-quo-vadis-edomi), the logic block (Edomi name for **L**ogic**B**au**S**tein) became a Home Assistant integration. This repository continues that work independently, see the origin note at the top. Feel free to use the integration on your needs.
 
 
 
@@ -231,7 +202,7 @@ Between sunrise and sunset, a brightness threshold is calculated using a sine cu
 
 ![Schema adaptive brightness](/images/adaptive_brightness_diagram.svg)
 
-The sun reaches its highest point at the summer solstice. This occurs annually on June 21st in the Northern Hemisphere and on December 21st in the Southern Hemisphere. **Shadow Control** determines whether the Home Assistant instance is located in the Northern or Southern Hemisphere based on its geographic coordinates. Using the summer solstice date, a linear formula calculates a maximum brightness threshold for the current day, falling between the winter and summer thresholds. In midsummer, a higher LUX value is required for clear skies and sunshine, while in winter, significantly lower LUX values are necessary. These winter and summer thresholds define the difference between these two conditions. This allows users to define the maximum brightness levels needed to trigger shading in midsummer and winter.
+The sun reaches its highest point at the summer solstice. This occurs annually on June 21st in the Northern Hemisphere and on December 21st in the Southern Hemisphere. **zimSHADOW** determines whether the Home Assistant instance is located in the Northern or Southern Hemisphere based on its geographic coordinates. Using the summer solstice date, a linear formula calculates a maximum brightness threshold for the current day, falling between the winter and summer thresholds. In midsummer, a higher LUX value is required for clear skies and sunshine, while in winter, significantly lower LUX values are necessary. These winter and summer thresholds define the difference between these two conditions. This allows users to define the maximum brightness levels needed to trigger shading in midsummer and winter.
 
 In the next step, a sine curve is calculated between sunrise and sunset, reaching its highest point at the determined daily maximum. The configured minimum brightness threshold is used as the lowest point of the sine curve and thus as the lowest shading threshold. This value cannot be lower than the [D02 Threshold](#d02-threshold).
 
@@ -251,13 +222,13 @@ The state of the automatic lock will be restored after a Home Assistant restart.
 
 # Installation
 
-**Shadow Control** is a default HACS integration, so you can install the integration by searching for it within HACS. After that, restart Home-Assistant and add the integration.
+**zimSHADOW** is not part of the HACS default list. Install it as a custom repository in HACS (`https://github.com/zimmerk/zimShadowControl`, category *Integration*) or copy the folder `custom_components/zimshadow` into the `custom_components` directory of your Home Assistant configuration. After that, restart Home Assistant and add the integration under _Settings > Devices & services_.
 
 Within further description:
 
 * The word "facade" is similar to "window" or "door," as it simply references the azimuth of an object in the sense of viewing direction from within that object to the outside.
 * The word "shutter" references rolling shutters. In the Home Assistant terminology, this is called a "cover". From the pov of this integration it's the same.
-* The whole internal logic was initially developed to interact with a KNX system, so the main difference is the handling of %-values. **Shadow Control** will interact with Home Assistant correct, but the configuration as well as the log output is using 0% as fully open and 100% as fully closed.
+* The whole internal logic was initially developed to interact with a KNX system, so the main difference is the handling of %-values. **zimSHADOW** will interact with Home Assistant correct, but the configuration as well as the log output is using 0% as fully open and 100% as fully closed.
 * Most options
   * provide own controls, which could be modified on the instance view. So they could be modified easily there.
   * can be configured with own entities. As soon as this possibility is used, there's no control created but a corresponding sensor, which displays the current value of the connected entity. So the used values could be dynamically modified like with a automation in front of the instance.
@@ -277,7 +248,7 @@ The initial instance configuration is very minimalistic and requires only the fo
 ### Instance name 
 (yaml: `name`)
 
-A descriptive and unique name for this **Shadow Control** instance. A sanitized version of this name will be used to mark corresponding log entries of this instance within the Home Assistant main log file as well as prefix for the created entities.
+A descriptive and unique name for this **zimSHADOW** instance. A sanitized version of this name will be used to mark corresponding log entries of this instance within the Home Assistant main log file as well as prefix for the created entities.
 
 Example:
 1. The instance is named "Dining room door"
@@ -300,7 +271,7 @@ This setting can't be changed later on. To do so, you need to remove the instanc
 ### Covers to maintain
 (yaml: `target_cover_entity`)
 
-The cover entities, which should be handled by this **Shadow Control** instance. You can add as many covers as you like, but the recommendation is to use only these covers, which have at least the same azimuth. For any further calculation, only the first configured cover will be used. All other covers will just be positioned as the first one.
+The cover entities, which should be handled by this **zimSHADOW** instance. You can add as many covers as you like, but the recommendation is to use only these covers, which have at least the same azimuth. For any further calculation, only the first configured cover will be used. All other covers will just be positioned as the first one.
 
 Within yaml you need to use the list syntax:
 ```yaml
@@ -340,7 +311,7 @@ sunset_entity
 
 ## Additional options
 
-The following options will be available by a separate config flow, which will open up with a click on "Configure" at the desired instance right on Settings > Integrations > **Shadow Control**.
+The following options will be available by a separate config flow, which will open up with a click on "Configure" at the desired instance right on Settings > Integrations > **zimSHADOW**.
 
 ### Facade configuration - part 1
 
@@ -382,9 +353,9 @@ With this switch, the debug mode for this instance could be activated. If activa
 #### Write own logfile
 (yaml: `own_logfile_enabled`)
 
-With this switch, Shadow Control will additionally write all log output for this instance to a dedicated log file in the Home Assistant configuration directory. The file is named `shadow_control_<sanitized-instance-name>.log` and is rotated automatically (max 5 MB per file, 3 backups kept). This is useful when you want to collect logs for a specific instance over a longer period without having to filter the main Home Assistant log.
+With this switch, zimSHADOW will additionally write all log output for this instance to a dedicated log file in the Home Assistant configuration directory. The file is named `zimshadow_<sanitized-instance-name>.log` and is rotated automatically (max 5 MB per file, 3 backups kept). This is useful when you want to collect logs for a specific instance over a longer period without having to filter the main Home Assistant log.
 
-Example path: `<config_dir>/shadow_control_dining_room_door.log`
+Example path: `<config_dir>/zimshadow_dining_room_door.log`
 
 
 ### Facade configuration - part 2
@@ -450,9 +421,9 @@ To compute the light strip given with the previous configuration option, the int
 
 Define the movement duration from fully closed (down) to fully open (up) in seconds. This is required to handle automatic instance lock properly in case the shutter position is modified manually.
 
-Within the configuration of the KNX cover instances, it is important to ensure that the `travelling_time_up` and `travelling_time_down` values are specified correctly! These values are used by Home Assistant to animate the sliders on the UI, and thus the countdown is continuously incremented or decremented as the blind moves over the configured time. This can be observed under `Developer Tools > States` on the respective cover entity. This is also the position value that is received as feedback by the **Shadow Control** instance and these values must never be greater than `facade_max_movement_duration_static`! It is recommended to configure the two Travelling Time values to match the measured travel time of the blind and to add two to three seconds to the value at `facade_max_movement_duration_static`.
+Within the configuration of the KNX cover instances, it is important to ensure that the `travelling_time_up` and `travelling_time_down` values are specified correctly! These values are used by Home Assistant to animate the sliders on the UI, and thus the countdown is continuously incremented or decremented as the blind moves over the configured time. This can be observed under `Developer Tools > States` on the respective cover entity. This is also the position value that is received as feedback by the **zimSHADOW** instance and these values must never be greater than `facade_max_movement_duration_static`! It is recommended to configure the two Travelling Time values to match the measured travel time of the blind and to add two to three seconds to the value at `facade_max_movement_duration_static`.
 
-Example within **Shadow Control** instance configuration:
+Example within **zimSHADOW** instance configuration:
 ```yaml
   facade_max_movement_duration_static: 35
 ```
@@ -595,7 +566,7 @@ The shading settings use the prefix **S&lt;number&gt;** to achieve a logical gro
 
 
 #### S01 Control enabled
-(yaml: `shadow_control_enabled_manual: true|false` u/o `shadow_control_enabled_entity: <entity>`)
+(yaml: `zimshadow_enabled_manual: true|false` u/o `zimshadow_enabled_entity: <entity>`)
 
 With this option, the whole shadow handling could be de-/activated. Default: on
 
@@ -791,21 +762,21 @@ dawn_close_not_later_than_manual: "20:00"
 
 ## Configuration by YAML
 
-It is possible to configure **Shadow Control** instances using YAML. To do so, you need to add the corresponding configuration to `configuration.yaml` and restart Home Assistant. After that, the YAML configuration be loaded and **Shadow Control** creates the corresponding instances. These instances could be modified afterward using Home Assistant ConfigFlow. Modifications right on the YAML content is not supportet. To reload the YAML configuration, you need to remove the existing **Shadow Control** instances and restart Home Assistant.
+It is possible to configure **zimSHADOW** instances using YAML. To do so, you need to add the corresponding configuration to `configuration.yaml` and restart Home Assistant. After that, the YAML configuration be loaded and **zimSHADOW** creates the corresponding instances. These instances could be modified afterward using Home Assistant ConfigFlow. Modifications right on the YAML content is not supportet. To reload the YAML configuration, you need to remove the existing **zimSHADOW** instances and restart Home Assistant.
 
 ### Example YAML configuration
 
 The entries within the configuration follow the mentioned keywords within the documentation above. Unused keywords must be commented (disabled) or removed.
 
 ```yaml
-shadow_control:
+zimshadow:
   - name: "Büro West"
     #
     # Configure shutter mode by entering 'mode1', 'mode2' or 'mode3'
     # All *_angle_* settings will be ignored on mode3
     facade_shutter_type_static: mode1
     #
-    # List of cover entities to handle by this Shadow Control instance
+    # List of cover entities to handle by this zimSHADOW instance
     target_cover_entity:
       - cover.fenster_buro_west
     #
@@ -813,7 +784,7 @@ shadow_control:
     debug_enabled: false
     #
     # Write all log output for this instance to a dedicated logfile in the HA
-    # config directory (shadow_control_<name>.log, max 5 MB x 3 backups)
+    # config directory (zimshadow_<name>.log, max 5 MB x 3 backups)
     own_logfile_enabled: false
     #
     # =======================================================================
@@ -886,8 +857,8 @@ shadow_control:
     #
     # =======================================================================
     # Shadow configuration
-    #shadow_control_enabled_entity:
-    shadow_control_enabled_manual: true
+    #zimshadow_enabled_entity:
+    zimshadow_enabled_manual: true
     #shadow_brightness_threshold_winter_entity:
     #shadow_brightness_threshold_winter_manual: 30000
     #shadow_brightness_threshold_summer_entity:
@@ -940,7 +911,7 @@ shadow_control:
 ```
 # State, return values and direct options
 
-Each instance of **Shadow Control** creates a device within Home Assistant, which contains the following entities for further usage: 
+Each instance of **zimSHADOW** creates a device within Home Assistant, which contains the following entities for further usage: 
 
 ![Sensors](/images/sensors.png)
 
@@ -984,7 +955,7 @@ The entity `current_state` holds the current internal state of the integration a
 * DAWN_FULL_CLOSED = -5
 * DAWN_FULL_CLOSE_TIMER_RUNNING = -6
 
-Parallel to `current_state`, the entity `current_state_text` contains a textual representation aka a translated string of the current state. This string could be used right on the UI to show the current state of the corresponding **Shadow Control** instance.
+Parallel to `current_state`, the entity `current_state_text` contains a textual representation aka a translated string of the current state. This string could be used right on the UI to show the current state of the corresponding **zimSHADOW** instance.
 
 ### Lock state
 `lock_state`
@@ -1022,7 +993,7 @@ As soon as an option is explicitly configured with its own entity, this option i
 
 # Configuration export
 
-As the **Shadow Control** configuration might be very extensive, there is a special service to write the current configuration using YAML format to the Home Assistant log. 
+As the **zimSHADOW** configuration might be very extensive, there is a special service to write the current configuration using YAML format to the Home Assistant log. 
 
 ## Preparation
 
@@ -1037,11 +1008,11 @@ The easiest way to access the log output is by using `Settings -> System -> Prot
 
 ## Usage
 
-Open a second browser tab and navigate to `Settings -> Developer tools -> Actions` and search for `dump_sc_config`. If the service is triggered without further modification, the configuration of the first **Shadow Control** instance will be dumped to the log. That might look like this:
+Open a second browser tab and navigate to `Settings -> Developer tools -> Actions` and search for `dump_sc_config`. If the service is triggered without further modification, the configuration of the first **zimSHADOW** instance will be dumped to the log. That might look like this:
 
 ```
-2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - START ===
-2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Full configuration:
+2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - START ===
+2025-07-06 21:12:57.136 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] Full configuration:
 --- YAML dump start ---
 brightness_entity: input_number.d01_brightness
 dawn_after_seconds_manual: 10.0
@@ -1054,12 +1025,12 @@ sun_elevation_entity: input_number.d03_sun_elevation
 target_cover_entity:
 - cover.sc_dummy
 --- YAML dump end ---
-2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Associated Device: SC Dummy (id: 8d9324...
-2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] Associated Entities:
-2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] - sensor.sc_dummy_hohe: State='80.0', A...
-2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] - sensor.sc_dummy_lamellenwinkel: State...
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] Associated Device: SC Dummy (id: 8d9324...
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] Associated Entities:
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] - sensor.sc_dummy_hohe: State='80.0', A...
+2025-07-06 21:12:57.137 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] - sensor.sc_dummy_lamellenwinkel: State...
 ...
-2025-07-06 21:12:57.139 INFO (MainThread) [custom_components.shadow_control] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - END ===
+2025-07-06 21:12:57.139 INFO (MainThread) [custom_components.zimshadow] [SC Dummy] === DUMPING INSTANCE CONFIGURATION - END ===
 ```
 
 Between the two marker lines `--- YAML dump start ---` and `--- YAML dump end ---` is the complete configuration of the instance in YAML format. This can be copied and saved or used as a basis for additional instances.
@@ -1075,29 +1046,7 @@ name: SC Dummy 3
 ## YAML mode
 
 ```yaml
-action: shadow_control.dump_sc_configuration
+action: zimshadow.dump_sc_configuration
 data:
   name: SC Dummy 3
 ```
-
-
-[hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-blue?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc
-
-[ghs]: https://github.com/sponsors/starwarsfan
-[ghsbadge]: https://img.shields.io/github/sponsors/starwarsfan?style=for-the-badge&logo=github&logoColor=ccc&link=https%3A%2F%2Fgithub.com%2Fsponsors%2Fstarwarsfan&label=Sponsors
-
-[buymecoffee]: https://www.buymeacoffee.com/starwarsfan
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
-
-[paypal]: https://paypal.me/ysswf
-[paypalbadge]: https://img.shields.io/badge/paypal-me-blue.svg?style=for-the-badge&logo=paypal&logoColor=ccc
-
-[hainstall]: https://my.home-assistant.io/redirect/config_flow_start/?domain=shadow_control
-[hainstallbadge]: https://img.shields.io/badge/dynamic/json?style=for-the-badge&logo=home-assistant&logoColor=ccc&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.shadow_control.total
-
-[tests]: https://github.com/starwarsfan/shadow-control/actions/workflows/unittest.yml
-[tests-badge]: https://img.shields.io/github/actions/workflow/status/starwarsfan/shadow-control/unittest.yml?style=for-the-badge&logo=github&logoColor=ccc&label=Tests
-
-[coverage]: https://app.codecov.io/github/starwarsfan/shadow-control
-[coverage-badge]: https://img.shields.io/codecov/c/github/starwarsfan/shadow-control?style=for-the-badge&logo=codecov&logoColor=ccc&label=Coverage
